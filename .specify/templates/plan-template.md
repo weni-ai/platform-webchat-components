@@ -40,7 +40,26 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+Confirm each gate below, or record a justified violation in Complexity Tracking.
+
+- [ ] **I. UI only**: no transport, session, storage, queueing, history, encoding,
+      cart math, or voice orchestration added to this repository. Logic that belongs
+      to `@weni/webchat-service` is linked to a service issue instead.
+- [ ] **II. Presentational core**: no component imports or receives
+      `WeniWebchatService`; service adaptation stays in composables.
+- [ ] **III. Multi-instance**: no module-level mutable state, singletons, globals,
+      fixed DOM ids, or self-derived storage keys; teardown is explicit.
+- [ ] **IV. Variants and slots**: differences between consumers are props, variants,
+      or slots; no per-consumer component forks and no consumer names in identifiers.
+- [ ] **V. Unnnic only**: colours, spacing, radii, typography, and icons come from
+      Unnnic tokens and components; no hardcoded values.
+- [ ] **VI. Versioned contract**: public API changes are additive, or a MAJOR bump
+      plus `CHANGELOG.md` migration note is planned.
+- [ ] **VII. Parity tracked**: any capability gap versus `webchat-react` is recorded.
+- [ ] **VIII. Tests**: component variants, slot contracts, and concurrent-instance
+      behaviour are covered in the same change.
+- [ ] **Constraints**: no hardcoded user-facing copy, no router or store dependency,
+      no new runtime dependency that Unnnic or the service already covers.
 
 ## Project Structure
 
@@ -65,7 +84,17 @@ specs/[###-feature]/
 -->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
+# [REMOVE IF UNUSED] Option 1: Component library (DEFAULT for this repository)
+src/
+├── components/          # Presentational Vue components (Principle II)
+├── composables/         # Service adaptation layer (useWebchatService, ...)
+├── types/               # Public types re-exported from the service
+└── index.ts             # The public contract (Principle VI)
+
+# Tests are colocated with the unit under test, e.g.
+# src/components/__tests__/SomeComponent.spec.ts
+
+# [REMOVE IF UNUSED] Option 2: Single project
 src/
 ├── models/
 ├── services/
@@ -77,7 +106,7 @@ tests/
 ├── integration/
 └── unit/
 
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
+# [REMOVE IF UNUSED] Option 3: Web application (when "frontend" + "backend" detected)
 backend/
 ├── src/
 │   ├── models/
@@ -92,7 +121,7 @@ frontend/
 │   └── services/
 └── tests/
 
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
+# [REMOVE IF UNUSED] Option 4: Mobile + API (when "iOS/Android" detected)
 api/
 └── [same as backend above]
 

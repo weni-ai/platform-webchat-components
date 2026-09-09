@@ -9,7 +9,7 @@ description: "Task list template for feature implementation"
 
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
 
-**Tests**: The examples below include test tasks. Tests are OPTIONAL - only include them if explicitly requested in the feature specification.
+**Tests**: Tests are REQUIRED in this repository. Constitution Principle VIII mandates that every new or changed component and composable ships tests in the same change, covering each variant, each slot contract, and concurrent-instance behaviour. Test tasks MUST be generated, but test-first authoring is not enforced.
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
@@ -21,6 +21,9 @@ description: "Task list template for feature implementation"
 
 ## Path Conventions
 
+- **Component library (this repository)**: `src/components/`, `src/composables/`,
+  `src/types/`, public contract in `src/index.ts`, tests colocated in
+  `__tests__/*.spec.ts` next to the unit under test
 - **Single project**: `src/`, `tests/` at repository root
 - **Web app**: `backend/src/`, `frontend/src/`
 - **Mobile**: `api/src/`, `ios/src/` or `android/src/`
