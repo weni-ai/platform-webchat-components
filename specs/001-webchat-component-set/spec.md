@@ -330,10 +330,15 @@ displayed as it changes, and that the exit intent is reported from any phase.
 - **FR-003**: Blocks MUST NOT contain any wording shown to a person. All labels,
   placeholders, empty states, error wording, and accessible names MUST be supplied by
   the consuming product.
-- **FR-004**: The block set MUST expose the conversation data shape it renders as a
-  documented contract, so a consuming product that keeps its own message shape can map
-  into it once. [NEEDS CLARIFICATION: should this contract be a shape owned and defined
-  by this block set, or the shape already produced by the shared logic layer?]
+- **FR-004**: The block set MUST own and define the conversation data contract it
+  renders, rather than adopting the shape produced by the shared logic layer. The
+  contract MUST be normalised, meaning each concept is expressed exactly once and a
+  field is optional only where its absence carries meaning. A consuming product that
+  keeps its own message shape MUST be able to map into the contract in a single place.
+  Translating the shared logic layer's shape into the contract MUST be supplied as part
+  of this feature, so that no consuming product writes that translation itself and the
+  shared layer's redundant fields are reconciled in exactly one place rather than
+  inside every block.
 - **FR-005**: Where the two consuming products need the same block to look or behave
   differently, that difference MUST be offered as a named presentation variant of one
   block. Separate blocks per product MUST NOT be provided.
@@ -521,6 +526,15 @@ displayed as it changes, and that the exit intent is reported from any phase.
   before release.
 - Connection handling, session handling, message transport, history retrieval, and
   media encoding already exist in the shared logic layer and are not rebuilt here.
+- The shared logic layer's own message shape is transport-oriented and carries
+  historical compatibility baggage: identity is expressed by two competing fields,
+  direction by four values across two competing fields, and nearly everything is
+  optional. Its published declarations are also already out of step with what it
+  actually produces, declaring a timestamp as a number where order messages emit text,
+  and omitting the order form from its list of message forms. This is why FR-004 keeps
+  the presentation contract separate: adopting that shape would push defensive
+  branching into every block and freeze the shared layer's compatibility concerns into
+  this feature's public contract.
 - Cart behaviour and voice session behaviour do **not** yet exist in the shared logic
   layer. Stories 6 and 7 specify the presentation only and are sequenced last so the
   missing behaviour can be added to the shared logic layer first, rather than being
@@ -553,3 +567,7 @@ displayed as it changes, and that the exit intent is reported from any phase.
   exist there. A missing value is resolved by adding it there, not by working around it.
 - **Approved designs**: blocks without an approved design for a consuming product need
   one before that product can adopt them.
+- **Shared logic layer, declaration accuracy**: the mismatches noted in Assumptions
+  should be corrected at the source. This feature is not blocked by them, because
+  FR-004 absorbs them in one translation step, but leaving them uncorrected means that
+  translation carries permanent compensating logic.

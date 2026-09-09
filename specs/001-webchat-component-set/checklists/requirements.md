@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -54,14 +54,37 @@
    recording, virtualised rendering, separate theming interface, external customers)
    and by recording the two shared-logic-layer gaps in Dependencies.
 
-**Outstanding item**:
+**Iteration 2 — clarification resolved**:
 
-- **FR-004** carries the one remaining `[NEEDS CLARIFICATION]` marker: whether the
-  conversation data contract is owned by this block set or adopted from the shared
-  logic layer. This is unresolved on purpose because it materially changes every
-  consuming product's integration work, and both options are defensible. It does not
-  block `/speckit-clarify`; it must be resolved before `/speckit-plan`.
+`FR-004` asked whether the conversation data contract should be owned by this block
+set or adopted from the shared logic layer. Resolved in favour of **owning it**, after
+inspecting what the shared layer actually publishes and produces:
+
+- Identity is declared twice (`id` and `ID`, the latter noted as history
+  compatibility), and both are optional.
+- Direction is declared twice, once as a four-valued field covering two concepts
+  (`incoming`/`outgoing`/`in`/`out`) and again as a separate sender field, both optional.
+- The declared message forms omit the order form, which its builders do emit.
+- Timestamp is declared as a number, but order messages are built with text.
+- Almost every field is optional, and one field uses a different naming convention
+  from the rest.
+
+Adopting that shape would have required every block to branch defensively over those
+inconsistencies, and would have frozen the shared layer's backward-compatibility
+concerns into this feature's public contract, which the constitution's versioning
+principle then makes expensive to change. Owning a normalised contract confines the
+reconciliation to one translation step.
+
+The main argument against owning a contract — an extra place to update whenever the
+shared layer gains a message form — turns out to be weak: presenting a new message
+form requires a new block regardless, so extending the contract alongside it is
+marginal work rather than duplicated work.
+
+Recorded in the spec as the resolved `FR-004`, with the supporting evidence in
+Assumptions and a follow-up for the shared layer in Dependencies.
 
 ## Notes
 
-- Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`
+- All checklist items pass. The spec is ready for `/speckit-plan`.
+- `/speckit-clarify` is optional here; the one decision it would have surfaced is
+  already resolved above.
