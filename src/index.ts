@@ -1,3 +1,3 @@
 import './styles/index.scss';
 
-export {};
+export type * from './types';

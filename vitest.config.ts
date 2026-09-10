@@ -3,6 +3,13 @@ import { configDefaults, defineConfig } from 'vitest/config';
 
 export default defineConfig({
   plugins: [vue()],
+  css: {
+    preprocessorOptions: {
+      scss: {
+        api: 'modern-compiler',
+      },
+    },
+  },
   test: {
     environment: 'jsdom',
     globals: true,
@@ -18,6 +25,7 @@ export default defineConfig({
         'src/**/*.mdx',
         'src/**/__tests__/**',
         'src/**/*.spec.ts',
+        'src/test/**',
       ],
     },
   },

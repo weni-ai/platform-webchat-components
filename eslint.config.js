@@ -16,10 +16,12 @@ export default defineConfigWithVueTs(
 
   globalIgnores([
     '**/dist/**',
+    '**/build/**',
     '**/coverage/**',
     '**/storybook-static/**',
     '**/node_modules/**',
     '**/.changeset/**',
+    '**/*.min.js',
   ]),
 
   pluginVue.configs['flat/essential'],
@@ -44,6 +46,32 @@ export default defineConfigWithVueTs(
         ...globals.browser,
         ...globals.node,
       },
+    },
+  },
+
+  {
+    name: 'app/presentational-core',
+    files: ['src/components/**/*.{js,ts,vue}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: '@weni/webchat-service',
+              message:
+                'Components must not import @weni/webchat-service. Principle II: the service is reachable only through the ./composables entry point.',
+            },
+          ],
+          patterns: [
+            {
+              group: ['@weni/webchat-service/*'],
+              message:
+                'Components must not import @weni/webchat-service. Principle II: the service is reachable only through the ./composables entry point.',
+            },
+          ],
+        },
+      ],
     },
   },
 );

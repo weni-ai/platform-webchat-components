@@ -16,6 +16,7 @@
     "src/**/__tests__/**",
     "src/**/*.spec.ts",
     "src/**/*.stories.ts",
-    "src/**/*.mdx"
+    "src/**/*.mdx",
+    "src/test/**"
   ]
 }

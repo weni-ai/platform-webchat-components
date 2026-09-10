@@ -1,0 +1,73 @@
+import { Meta, Source } from '@storybook/addon-docs/blocks';
+
+<Meta title="Documentation/Page template" />
+
+# Documentation page template
+
+Every public block ships a page that follows this outline, so a reviewer can
+check design fidelity and an engineer can integrate the block without running a
+consuming product or reading library source (FR-066). Copy the sections below
+into `src/components/<Name>/<Name>.mdx` and replace the placeholders.
+
+## Purpose
+
+What the block is for, which conversation job it serves, and when a consuming
+product should mount it rather than a sibling.
+
+## Props
+
+| Prop | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `labels` | object | yes | All user-facing wording. FR-003 |
+
+Document every prop the block accepts. Required `labels` members are a MAJOR
+change to add, so new wording should arrive as optional members of the existing
+object.
+
+## Events
+
+| Event | Payload | Notes |
+| --- | --- | --- |
+| _(intent)_ | _(payload)_ | Reported once per user action |
+
+Document every emit. Blocks report intent; they do not perform domain work.
+
+## Slots
+
+| Slot | Scope | Notes |
+| --- | --- | --- |
+| _(name)_ | _(scope)_ | Host-owned content. Reserves no space when unused |
+
+Omit this section only when the block has no slots.
+
+## Integration example
+
+A copyable snippet that type-checks against the public entry. It must compile
+from the catalogue and the published contract alone.
+
+<Source
+  language="ts"
+  code={`import { PwcThread } from '@weni/platform-webchat-components';
+import type { Thread } from '@weni/platform-webchat-components';
+
+const thread: Thread = {
+  messages: [],
+  history: { hasEarlier: false, loadingEarlier: false },
+};
+
+const labels = {
+  empty: 'No messages yet',
+  loadingEarlier: 'Loading earlier messages',
+  peerComposing: 'The other person is writing',
+  peerWorking: 'The other person is working',
+  deliveryPending: 'Sending',
+  deliveryDelivered: 'Delivered',
+  deliveryRead: 'Read',
+  deliveryFailed: 'Not sent',
+  openDocument: 'Open document',
+  unsupportedMessage: 'This message cannot be shown',
+  mediaLoadFailed: 'Media could not be loaded',
+  goToNewest: 'Go to newest',
+};
+`}
+/>

@@ -73,14 +73,14 @@ Still `1.0.0`: no Changeset, changelog, `package.json` version, or constitution 
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T011 Define the complete conversation model in `src/types/index.ts`: `Message` discriminated union with all ten kinds, `MessageBase`, `MessageDirection`, `DeliveryState`, `MessagePresentation`, `MessageActions`, `MessageRating`, `Thread`, `PeerActivity`, `HistoryState`, `PresetReply`, `ReplyOption`, `Suggestion`, `CallToAction`, `Product`, `ProductSection`, `ProductSetMode`, `CartLine`, `CartQuantities`, `CartSummary`, `Cart`, `ComposerVariant`, `ComposerCapabilities`, `RecordingState`, `AgentConfigOption`, `VoicePhase`, `VoiceState`, `StorageNamespace`, per [data-model.md](./data-model.md)
-- [ ] T012 [P] Create the Unnnic token layer in `src/styles/tokens.scss`, importing `@weni/unnnic-system/src/assets/scss/unnnic.scss` and exposing nothing of its own
-- [ ] T013 [P] Create the public entry point `src/index.ts` exporting types only, to be extended per story
-- [ ] T014 [P] Create the composables entry point `src/composables/index.ts`, empty of implementation for now
-- [ ] T015 Add an ESLint `no-restricted-imports` rule forbidding anything under `src/components/**` from importing `@weni/webchat-service`, enforcing Principle II by the module graph
-- [ ] T016 [P] Create the stubbed service test double in `src/test/stubService.ts`, exposing `on`, `off`, `getState`, `getMessages`, and a listener count for teardown assertions
-- [ ] T017 [P] Create sentinel label fixtures in `src/test/labels.ts` so SC-006 can assert that no text outside the sentinels renders
-- [ ] T018 [P] Create the Storybook documentation page template in `.storybook/DocsPage.mdx` covering purpose, props, events, slots, and a copyable integration example, as FR-066 requires
+- [X] T011 Define the complete conversation model in `src/types/index.ts`: `Message` discriminated union with all ten kinds, `MessageBase`, `MessageDirection`, `DeliveryState`, `MessagePresentation`, `MessageActions`, `MessageRating`, `Thread`, `PeerActivity`, `HistoryState`, `PresetReply`, `ReplyOption`, `Suggestion`, `CallToAction`, `Product`, `ProductSection`, `ProductSetMode`, `CartLine`, `CartQuantities`, `CartSummary`, `Cart`, `ComposerVariant`, `ComposerCapabilities`, `RecordingState`, `AgentConfigOption`, `VoicePhase`, `VoiceState`, `StorageNamespace`, per [data-model.md](./data-model.md)
+- [X] T012 [P] Create the Unnnic token layer in `src/styles/tokens.scss`, importing `@weni/unnnic-system/src/assets/scss/unnnic.scss` and exposing nothing of its own
+- [X] T013 [P] Create the public entry point `src/index.ts` exporting types only, to be extended per story
+- [X] T014 [P] Create the composables entry point `src/composables/index.ts`, empty of implementation for now
+- [X] T015 Add an ESLint `no-restricted-imports` rule forbidding anything under `src/components/**` from importing `@weni/webchat-service`, enforcing Principle II by the module graph
+- [X] T016 [P] Create the stubbed service test double in `src/test/stubService.ts`, exposing `on`, `off`, `getState`, `getMessages`, and a listener count for teardown assertions
+- [X] T017 [P] Create sentinel label fixtures in `src/test/labels.ts` so SC-006 can assert that no text outside the sentinels renders
+- [X] T018 [P] Create the Storybook documentation page template in `.storybook/DocsPage.mdx` covering purpose, props, events, slots, and a copyable integration example, as FR-066 requires
 
 **Checkpoint**: Model compiles under strict mode, the boundary lint rule fails a deliberate violation, and the doc template renders
 
