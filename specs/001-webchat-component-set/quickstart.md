@@ -25,7 +25,7 @@ Peer dependencies are installed as dev dependencies for local work:
 
 | Command | Purpose |
 |---------|---------|
-| `npm run dev` | Storybook catalogue on a local port |
+| `npm run dev` | Storybook catalogue and usage documentation on a local port |
 | `npm test` | Vitest once, including axe assertions |
 | `npm run test:watch` | Vitest in watch mode |
 | `npm run test:coverage` | Coverage via istanbul, matching both consumers' provider |
@@ -123,17 +123,37 @@ gives the same feedback while authoring but does not gate CI.
 npm run dev
 ```
 
-Reviewed by design against the Figma nodes recorded in the contract: the `expanded`
-composer against Versionamento de Agentes node 321-4207, the `compact` composer
-against Live Desk — Sales node 201-12618, and suggestions against node 201-12614.
-Blocks without an approved design are confirmed in the same review before release.
+Reviewed by design against the Figma nodes recorded in the contract, covering the
+thread and execution trace, both composer variants, the Copilot reply with its
+actions, the product set in both modes, and the cart panel. Blocks without an approved
+design follow the customer-facing implementation and are confirmed in the same review
+before release.
 
-### SC-011 — parity gaps recorded
+### SC-011 — every in-chat capability present or recorded
 
-Read `PARITY.md` at the repository root. Every `webchat-react` component is classified
-as ported, intentionally excluded, or an open gap. Two open gaps remain after the spec
-amendment: product browsing beyond a carousel, and order message presentation. This
-criterion fails if either is undocumented, not if either is unbuilt.
+Read `PARITY.md` at the repository root. All 45 `webchat-react` components are
+classified against the scope rule as in scope, widget shell, conversation starters, or
+a generic primitive absorbed elsewhere. With the rule applied there should be no open
+gaps; this criterion fails if an in-scope capability is neither built nor recorded.
+
+### SC-012 — the product set is genuinely reusable
+
+```bash
+npm test -- product-set-reuse
+```
+
+Expected: the same component renders inside a message and standalone, with only its
+mode differing, and no wrapper or copy exists for either position.
+
+### SC-013 — formatted text cannot execute
+
+```bash
+npm test -- message-text-sanitisation
+```
+
+Expected: for every supported formatting form, text carrying markup capable of
+executing renders as inert content. This is the one test whose failure is a security
+issue rather than a defect, so it runs on every change to text rendering.
 
 ## Consumer smoke test
 

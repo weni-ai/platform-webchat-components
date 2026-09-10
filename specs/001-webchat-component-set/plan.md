@@ -6,26 +6,23 @@
 
 ## Summary
 
-Bootstrap `@weni/platform-webchat-components` from an empty repository and deliver the
-webchat conversation blocks that Agent Builder and Live Desk both need: a thread, a
-composer with two presentation variants, standalone suggestions, opening prompts, a
-cart, and a spoken mode panel, plus a service adaptation layer behind a separate entry
-point.
+Bootstrap `@weni/platform-webchat-components` from an empty repository and deliver
+every block that appears inside a CX Platform webchat conversation: the thread and its
+message forms in two presentations, the composer in two variants, per-message actions,
+offerings and suggestions, the product set, the cart, and spoken mode. A service
+adaptation layer sits behind a separate entry point.
 
-The approach is presentational components composed from Unnnic primitives, driven
-entirely by props, reporting intents through emits, and accepting host content through
-named slots. The conversation model is owned by this library and normalised, with one
+The approach is presentational components driven entirely by props, reporting intents
+through emits, accepting host content through named slots, and built from Unnnic
+tokens. The conversation model is owned by this library and normalised, with one
 adapter absorbing the service's inconsistencies. Composables live behind
 `./composables` so that importing components never pulls `@weni/webchat-service` into
 a consumer's graph.
 
-Research produced two findings that changed the shape of this plan. First, Unnnic
-3.30.0 already ships `unnnicAudioRecorder`, `unnnicCarousel`, `unnnicChatText`,
-`unnnicCollapse`, and `unnnicEmojiPicker`, so several blocks are composition rather
-than new code. Second, four `webchat-react` capabilities fell outside the spec as
-first written; calls to action and opening prompts were subsequently added by
-amendment, and the remaining two are recorded as open gaps rather than silently
-absorbed.
+Scope is drawn by a single rule: everything inside the chat is in, the widget shell is
+out. That rule closed every open question about parity with the customer-facing
+implementation, and it excluded conversation starters, which neither consuming product
+needs.
 
 ## Technical Context
 
@@ -34,10 +31,10 @@ absorbed.
 
 **Primary Dependencies**: peers `vue@^3.4.8`, `@weni/unnnic-system@>=3.30.0 <4`,
 `@weni/webchat-service@^1.10.3`; runtime `marked` and `dompurify` for sanitised
-message markdown
+message text
 
 **Storage**: none owned by this library. Any persistence takes a caller-supplied
-namespace, per FR-018
+namespace, per FR-021
 
 **Testing**: Vitest with `@vue/test-utils`, `@vitest/coverage-istanbul` to match both
 consumers, `vitest-axe` for the accessibility gate
@@ -54,8 +51,8 @@ without perceptible stalling, per SC-007
 **Constraints**: no domain logic, no user-facing copy, no router or store dependency,
 no bundled peer dependencies, unbounded simultaneous instances
 
-**Scale/Scope**: six public components, two public composables, two consuming
-products, roughly 24 `webchat-react` components at parity
+**Scale/Scope**: ten public components, two public composables, two consuming
+products, 28 in-scope `webchat-react` components at parity
 
 Full reasoning for each choice, including alternatives rejected, is in
 [research.md](./research.md). No NEEDS CLARIFICATION items remain.
@@ -64,14 +61,13 @@ Full reasoning for each choice, including alternatives rejected, is in
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-Initial evaluation and post-design re-evaluation reached the same result. One
-deviation is recorded in Complexity Tracking; every other gate passes.
+One deviation is recorded in Complexity Tracking; every other gate passes.
 
 - [x] **I. UI only**: no transport, session, storage, queueing, history, encoding,
-      cart math, or voice orchestration added to this repository. Cart totals and
-      spoken-mode phases arrive as props, per FR-036 and FR-042. The two service gaps
-      are recorded in the spec's Dependencies, and stories 6 and 7 are sequenced last
-      so the logic lands in the service first.
+      cart math, or voice orchestration added to this repository. Line totals,
+      subtotals, discounts, and spoken-mode phases all arrive as props, per FR-053 and
+      FR-059. The two service gaps are recorded in the spec's Dependencies, and
+      stories 7 and 8 are sequenced last so the logic lands in the service first.
 - [x] **II. Presentational core**: no component imports or receives
       `WeniWebchatService`. Enforced structurally rather than by review: the service
       is reachable only through the `./composables` entry point, and nothing under `.`
@@ -83,25 +79,25 @@ deviation is recorded in Complexity Tracking; every other gate passes.
       `onUnmounted`, and exposes `dispose` for callers outside a component scope.
       Covered by the dedicated multi-instance and teardown tests in the quickstart.
 - [x] **IV. Variants and slots**: the two composer arrangements are `compact` and
-      `expanded` on one component, and `capabilities` is independent of variant so no
-      control needs a new variant. Host UI enters through `message-before`,
-      `message-after`, `leading`, `trailing`, and `above`. No consuming product is
-      named in any identifier, and no component branches on which application renders
-      it. A whole-message override slot was deliberately left out; the reasoning is in
-      the contract.
-- [x] **V. Unnnic only**: colours, spacing, radii, typography, and icons come from
-      Unnnic tokens, consumed through its `./tokens/*` subpath exports and SCSS entry.
-      Thirteen Unnnic primitives are composed rather than reimplemented, listed in
-      research D9. No hardcoded hex values or raw pixel spacing. Figma nodes for the
-      three blocks that have approved designs are recorded in the contract.
+      `expanded`, the two message arrangements are `bubble` and `assistant`, and the
+      product set has `actionable` and `record` modes, each on one component. Host UI
+      enters through `message-before`, `message-after`, `leading`, `trailing`, and
+      `above`. No consuming product is named in any identifier, and no component
+      branches on which application renders it. A whole-message override slot was
+      deliberately left out; the reasoning is in the contract.
+- [x] **V. Unnnic only**: every colour, space, radius, typography value, and shadow
+      comes from Unnnic tokens through its `./tokens/*` subpath exports and SCSS entry.
+      Unnnic *components* are used where the approved design is that component, which
+      Code Connect confirms for button, chip, and icon. Where the design is bespoke,
+      the block is built from tokens; research D9 records which and why. Principle V's
+      "that fits" clause is what governs, and the design decides fit.
 - [x] **VI. Versioned contract**: this is the initial `0.x` surface, so there is
       nothing to break yet. The versioning table in the contract fixes the rules going
       forward, including the one non-obvious case: a new required member of any
       `labels` object is MAJOR.
 - [x] **VII. Parity tracked**: `PARITY.md` at bootstrap classifies all 45
-      `webchat-react` components as ported, intentionally excluded, or an open gap. Two
-      open gaps remain after the amendment: product browsing beyond a carousel, and
-      order message presentation.
+      `webchat-react` components against the scope rule. With the rule applied there
+      are no open gaps, which is what makes SC-011 checkable.
 - [x] **VIII. Tests**: every component ships tests for each variant and each slot
       contract; composables ship tests for mount, teardown, and two concurrent
       instances against a stubbed service. Named test targets are in the quickstart.
@@ -111,7 +107,7 @@ deviation is recorded in Complexity Tracking; every other gate passes.
 The final gate is the one that does not pass cleanly. Copy, router, and store are all
 satisfied: wording arrives through required `labels` objects, which makes a missing
 label a compile error rather than a review catch, and nothing depends on a router or
-store. The dependency clause is where the deviation sits, and it is recorded below.
+store. The dependency clause is where the deviation sits, recorded below.
 
 ## Project Structure
 
@@ -138,30 +134,38 @@ created by the bootstrap work rather than extended.
 ```text
 src/
 ├── components/
-│   ├── PwcThread/            # thread, message kinds, indicators
+│   ├── PwcThread/            # thread, scroll anchoring, indicators
+│   ├── PwcMessage/           # bubble and assistant presentations, all message kinds
+│   ├── PwcMessageActions/    # copy, send, rate
 │   ├── PwcComposer/          # compact and expanded variants
 │   ├── PwcSuggestions/       # standalone attendant suggestions
-│   ├── PwcOpeningPrompts/    # suggested first messages, two densities
-│   ├── PwcCart/              # cart presentation
+│   ├── PwcProductSet/        # horizontal product cards, actionable or record
+│   ├── PwcProductDetail/     # one product expanded
+│   ├── PwcCart/              # cart panel, lines, summary, submission
+│   ├── PwcCartIndicator/     # item count, opens the cart
 │   └── PwcVoicePanel/        # spoken mode presentation
 ├── composables/
 │   ├── useWebchatService.ts  # the only service-aware module
 │   ├── fromServiceMessage.ts # normalisation, publicly exported
 │   └── index.ts              # the ./composables entry point
 ├── internal/
-│   └── useThreadScroll.ts    # anchoring; not part of the public contract
+│   ├── useThreadScroll.ts    # anchoring; not part of the public contract
+│   └── renderMessageText.ts  # markdown with sanitisation
 ├── types/
 │   └── index.ts              # the owned conversation model
-├── styles/                   # Unnnic token usage, scoped SCSS
+├── styles/
+│   └── tokens.scss           # Unnnic token usage; no literal values
 └── index.ts                  # the public contract
 
-.storybook/                   # catalogue configuration
+.storybook/                   # catalogue and usage documentation
 PARITY.md                     # webchat-react parity tracking
 CHANGELOG.md                  # required per release by Principle VI
 ```
 
 Tests are colocated with the unit under test, for example
-`src/components/PwcThread/__tests__/PwcThread.spec.ts`.
+`src/components/PwcThread/__tests__/PwcThread.spec.ts`. Each component directory also
+holds its stories and its documentation page, since FR-066 requires the catalogue to
+explain use and not only display state.
 
 **Structure Decision**: the component library layout from the template, with two
 additions. `src/internal/` exists so that shared helpers have an unambiguous home that
@@ -178,59 +182,72 @@ importing across a boundary that a lint rule can forbid.
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| Two runtime dependencies, `marked` and `dompurify`, against the near-zero guidance in the constitution's Technology and Dependency Constraints | Agents already emit markdown, and `webchat-react` already renders it with these exact two libraries. Unnnic has no markdown renderer and the service does not format text, so nothing in the existing stack covers the need. Not rendering markdown would be a visible capability regression against the implementation Principle VII requires parity with. | Pushing markdown to each consumer through a slot recreates the duplication this library exists to remove, and duplicates the sanitisation decision, which is the part with security consequences. Rendering plain text only is a capability regression. A local sanitiser is a well-known source of injection bugs and is not what the constitution means by a small local utility. |
+| Two runtime dependencies, `marked` and `dompurify`, against the near-zero guidance in the constitution's Technology and Dependency Constraints | Agents already emit formatted text, and the customer-facing implementation already renders it with these exact two libraries. Unnnic has no markdown renderer and the service does not format text, so nothing in the existing stack covers the need. FR-011 additionally requires neutralising executable markup, which is a security requirement rather than a formatting nicety. | Pushing formatting to each consumer through a slot recreates the duplication this library exists to remove, and duplicates the sanitisation decision, which is the part with security consequences. Rendering plain text only is a capability regression. A local sanitiser is a well-known source of injection bugs and is not what the constitution means by a small local utility. |
 
 ## Sequencing
 
 Story priority from the spec drives order, with one adjustment: bootstrap comes first
 because the repository has no build.
 
-1. **Bootstrap** — `package.json`, Vite library mode, Vitest, ESLint, Storybook,
-   `PARITY.md`, `CHANGELOG.md`, the owned model in `src/types/`, and CI.
-2. **US1, thread** (P1) — the model, message kinds, indicators, scroll anchoring.
-3. **US2, composer** (P2) — both variants, capabilities, recording presentation.
+1. **Bootstrap** — `package.json`, Vite library mode, Vitest, ESLint, Storybook with
+   documentation pages, `PARITY.md`, `CHANGELOG.md`, the owned model in `src/types/`,
+   the Unnnic token layer, and CI.
+2. **US1, thread and messages** (P1) — the model, every message kind, both
+   presentations, indicators, scroll anchoring, sanitised text.
+3. **US2, composer** (P2) — both variants, capabilities, audio and camera recording
+   presentation.
 4. **US3, independence** (P3) — the multi-instance and teardown guarantees, plus
    `useWebchatService` and the shared-composer scenario.
 5. **US4, host content** (P4) — the two message slots.
-6. **US5, offerings** (P5) — preset replies, options, products, suggestions, calls to
-   action, opening prompts.
-7. **US6, cart** (P6) — blocked on cart behaviour landing in the service.
-8. **US7, spoken mode** (P7) — blocked on voice session behaviour landing in the
+6. **US5, offerings and actions** (P5) — preset replies, options, suggestions, calls
+   to action, and per-message copy, send, and rating.
+7. **US6, products** (P6) — the product set in both modes, standalone and inside a
+   message, plus product detail and inline presentation.
+8. **US7, cart** (P7) — indicator, lines, steppers, summary, submission. Blocked on
+   cart behaviour landing in the service.
+9. **US8, spoken mode** (P8) — blocked on voice session behaviour landing in the
    service.
 
-Steps 7 and 8 can be built as presentation ahead of their service dependencies, since
-FR-036 and FR-042 forbid this library from owning that logic anyway. What they cannot
+Steps 8 and 9 can be built as presentation ahead of their service dependencies, since
+FR-053 and FR-059 forbid this library from owning that logic anyway. What they cannot
 do is be validated end to end, which the quickstart records as a known limit.
 
-## Amendment: calls to action and opening prompts
+Story 6 must precede story 7 even though products are lower value on their own,
+because the cart reuses the product card and the line presentation.
 
-Research surfaced two `webchat-react` capabilities the spec did not cover and that
-looked like omissions rather than exclusions. Both were confirmed in scope and the spec
-was amended, adding FR-049 through FR-052, four acceptance scenarios to story 5, two
-entities, and three edge cases. They are numbered after FR-048 rather than beside the
-other offerings because the surrounding requirements were already referenced from this
-plan, the data model, and the contract, and renumbering would have silently invalidated
-those references.
+## Decisions taken during planning
 
-Reading the source settled two design questions that guesswork would have got wrong:
+Three things changed shape once the approved designs and the scope rule were applied.
+They are recorded here because each reverses an earlier decision in this plan's own
+history.
 
-- A call to action arrives on the service message as `cta_message`, carrying
-  `display_text` and `url`. That field does not appear in the service's published
-  `Message` interface at all, which is further evidence for the FR-004 decision: a
-  contract built on the declared type would have had nowhere to put it.
-- Opening prompts are plain strings in the customer-facing implementation, keyed and
-  sent by their own wording. The model keeps them as strings rather than inventing an
-  identity, since a synthesised identity is the pattern FR-004 exists to avoid.
+**Unnnic is a token source first.** An earlier draft proposed composing thirteen
+Unnnic primitives. The designs showed that inverted: they are built from Unnnic
+variables throughout, but Code-Connect to only three Unnnic components. The carousel
+in particular is a bespoke product-card strip, not `unnnicCarousel`. Principle V's
+"that fits" clause is what resolves this, and research D9 records each case.
 
-One deliberate divergence from the customer-facing implementation: activating a call to
-action there only navigates. Here it navigates and reports, because a CX Platform
-product needs to record or intercept the activation. The reasoning, including why it is
-not a breach of FR-001, is in the contract.
+**Conversation starters are out.** They were added to scope in the previous round as
+"opening prompts", with requirements and a component. Neither consuming product needs
+them, so they are removed rather than built unused. Camera recording moved the other
+way: previously excluded for want of a design, now included because it is inside the
+chat and the service already supports it.
 
-## Remaining parity gaps
+**The designs added four capabilities the spec had missed**: per-message actions,
+a second message presentation, the product set living inside a message, and the cart
+being a panel with a count indicator and a summary rather than a flat list. Research
+D12 records what each came from.
 
-Two capabilities stay out of scope and are recorded in `PARITY.md` per FR-048:
-product browsing beyond a carousel (`ProductCatalog`, `ProductDetails`, `InlineProduct`,
-`ShowItems`) and order message presentation (`MessageOrder`). Both sit close to the cart
-work in story 6, so they are the natural candidates for the next spec once cart
-behaviour exists in the service.
+## Open items
+
+**Two Figma measurements to confirm with design**, neither blocking. The Agent Builder
+thread sets outbound bubbles to a 360px maximum and inbound to 350px, with nothing
+suggesting the difference is deliberate. And no approved design covers the audio
+recording state, so whether `unnnicAudioRecorder` fits is checked against the
+customer-facing implementation when story 2 is built.
+
+**One design annotation is an open product question**, quoted from the Figma file: the
+product set is capped at ten items because that is what WhatsApp accepts, and the
+annotation asks what other platforms allow. FR-046 keeps this safe by forbidding
+silent truncation, and the limit is a supplied number rather than a constant, so the
+answer can arrive later without a contract change.

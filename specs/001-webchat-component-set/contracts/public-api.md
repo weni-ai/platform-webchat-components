@@ -24,13 +24,14 @@ from it.
 
 ## Naming
 
-Components use the `Pwc` prefix. Earlier notes sketched this composer as `PwcInput`;
-it is named `PwcComposer` here because "input" collides with `unnnicInput` in a file
-that imports both, and because the spec's own language throughout is "composer".
+Components use the `Pwc` prefix. Earlier notes sketched the composer as `PwcInput`; it
+is named `PwcComposer` because "input" collides with `unnnicInput` in a file that
+imports both, and because the spec's own language throughout is "composer".
 
 Per Principle IV no identifier names a consuming product. Variants describe the
-presentation instead, so `expanded` and `compact` replace what would otherwise have
-been `agent-builder` and `desk-copilot`.
+presentation instead, so `compact` and `expanded` replace what would otherwise have
+been `desk-copilot` and `agent-builder`, and `bubble` and `assistant` describe the two
+message presentations.
 
 ## How wording is enforced
 
@@ -40,6 +41,29 @@ consumer that forgets a label cannot build. It also means adding a label to a
 component is a MAJOR change, since it breaks every existing `labels` object, so new
 labels should arrive as optional members of the existing object.
 
+Content that comes from the conversation — message text, a product name, a call to
+action's wording — is data on the model, not a label. Only chrome is a label.
+
+## Component overview
+
+| Component | Purpose | Requirements |
+|-----------|---------|--------------|
+| `PwcThread` | The conversation, its messages, indicators, and scroll | FR-009 to FR-017 |
+| `PwcMessage` | One message in either presentation; used by the thread and available alone | FR-010 to FR-014, FR-012 |
+| `PwcMessageActions` | Copy, send, and rate a message | FR-038, FR-039 |
+| `PwcComposer` | Writing and sending, in two variants | FR-024 to FR-030 |
+| `PwcSuggestions` | Standalone attendant suggestions | FR-032, FR-033 |
+| `PwcProductSet` | Horizontal product cards, actionable or record | FR-040 to FR-046 |
+| `PwcProductDetail` | One product expanded | FR-047 |
+| `PwcCart` | Cart panel with lines, summary, and submission | FR-049 to FR-053 |
+| `PwcCartIndicator` | Item count and a request to open the cart | FR-048 |
+| `PwcVoicePanel` | Spoken mode phases | FR-054 to FR-059 |
+
+`PwcMessage`, `PwcMessageActions`, `PwcProductSet`, and `PwcProductDetail` are all
+exported in their own right as well as being used internally, per FR-008. The product
+set is the case that forced the rule: the approved designs place it inside an assistant
+reply and inside a sent bubble, and Live Desk needs it in its own layout too.
+
 ## PwcThread
 
 Renders a conversation. Owns scroll behaviour and nothing else.
@@ -48,38 +72,26 @@ Renders a conversation. Owns scroll behaviour and nothing else.
 
 | Prop | Type | Required | Notes |
 |------|------|----------|-------|
-| `thread` | `Thread` | yes | FR-008 |
-| `locale` | `string` | yes | Timestamp formatting, FR-015 |
+| `thread` | `Thread` | yes | FR-009 |
+| `locale` | `string` | yes | Timestamp formatting, FR-018 |
+| `presentation` | `MessagePresentation` | no, default `'bubble'` | FR-012 |
 | `labels` | `ThreadLabels` | yes | FR-003 |
-| `autoAdvanceThresholdPx` | `number` | no, default `64` | Distance from newest message within which new arrivals advance the view, FR-013 |
-
-```ts
-interface ThreadLabels {
-  empty: string;
-  loadingEarlier: string;
-  peerComposing: string;
-  peerWorking: string;
-  deliveryPending: string;
-  deliveryDelivered: string;
-  deliveryFailed: string;
-  retry: string;
-  openDocument: string;
-  unsupportedMessage: string;
-  mediaLoadFailed: string;
-}
-```
+| `autoAdvanceThresholdPx` | `number` | no, default `64` | Distance from newest message within which new arrivals advance the view, FR-016 |
 
 **Emits**
 
 | Event | Payload | Notes |
 |-------|---------|-------|
-| `request-earlier` | — | Reader reached the start of loaded history, FR-014 |
-| `select-preset-reply` | `{ messageId: string; replyId: string }` | FR-028 |
-| `select-option` | `{ messageId: string; optionId: string }` | FR-031 |
-| `select-product` | `{ messageId: string; productId: string }` | FR-032 |
-| `retry-message` | `{ messageId: string }` | Failed outbound message, FR-011 |
-| `open-document` | `{ messageId: string; url: string }` | FR-009 |
-| `activate-call-to-action` | `{ messageId: string; url: string }` | Reported in addition to navigating, FR-050 |
+| `request-earlier` | — | Reader reached the start of loaded history, FR-017 |
+| `select-preset-reply` | `{ messageId, replyId }` | FR-031 |
+| `select-option` | `{ messageId, optionId }` | FR-034 |
+| `select-product` | `{ messageId, productId }` | FR-040 |
+| `add-product-to-cart` | `{ messageId, productId }` | FR-045 |
+| `remove-product` | `{ messageId, productId }` | FR-045 |
+| `retry-message` | `{ messageId }` | Failed outbound message, FR-014 |
+| `open-document` | `{ messageId, url }` | FR-010 |
+| `activate-call-to-action` | `{ messageId, url }` | Reported in addition to navigating, FR-036 |
+| `message-action` | `{ messageId, action: 'copy' \| 'send' \| 'rate', rating?: MessageRating }` | FR-038 |
 
 **Slots**
 
@@ -97,23 +109,74 @@ a real case appears that variants and the two injection slots cannot serve.
 
 **Behaviour that is part of the contract**
 
-- Messages render in the order supplied; the component does not sort. FR-008
-- A message keyed by `id` is never remounted as `streaming` content grows. FR-010
+- Messages render in the order supplied; the component does not sort. FR-009
+- A message keyed by `id` is never remounted as `streaming` content grows. FR-013
 - A new message advances the view only while the reader is within
-  `autoAdvanceThresholdPx` of the newest message. FR-013
-- Prepending earlier history preserves the reader's viewport position. FR-013
+  `autoAdvanceThresholdPx` of the newest message. FR-016
+- Prepending earlier history preserves the reader's viewport position. FR-016
 - A duplicate `id` renders once. Edge case in the spec.
-- `kind: 'unsupported'` occupies a position using `labels.unsupportedMessage`. FR-009
-- A `callToAction` renders as a real link opening in a new context, and additionally
-  emits `activate-call-to-action`. FR-050
+- `kind: 'unsupported'` occupies a position using `labels.unsupportedMessage`. FR-010
 
-**On the call to action emitting as well as navigating**: this is the one place where a
-block does something rather than only reporting an intent, which reads at first like a
-breach of FR-001. It is deliberate. Rendering an actual link is what makes the
-affordance behave the way people expect, including middle-click, modifier-click, and
-"copy link address", none of which survive being turned into a click handler. Reporting
-alongside it is what lets a consuming product record or intercept the activation, which
-the customer-facing implementation cannot do because it only navigates.
+**Design references**: Agent Builder thread and execution trace,
+[Versionamento de Agentes 321-4373](https://figma.com/design/ztq89Rzy2SktUXmJYEBP4d/Versionamento-de-Agentes?node-id=321-4373).
+Live Desk assistant presentation,
+[Live Desk — Sales 104-33766](https://figma.com/design/ieaAtsfIB7ymGfTUZ7aGpV/Live-Desk---Sales?node-id=104-33766).
+
+## PwcMessage
+
+One message. Exported separately so a consuming product can place a single message
+outside a thread.
+
+**Props**: `message: Message`, `locale: string`, `presentation: MessagePresentation`
+(default `'bubble'`), `labels: MessageLabels` (required).
+
+**Emits**: the same message-scoped events the thread re-emits, without the `messageId`
+wrapper since the component renders exactly one message.
+
+**Presentation behaviour**
+
+| | `bubble` | `assistant` |
+|---|---|---|
+| Layout | Aligned by direction, one square corner on the sender's side | Icon and heading above a bordered panel |
+| Timestamp and delivery | Inside the bubble, bottom-aligned | Not shown |
+| Actions | Not shown | Below the panel |
+
+**On the corner asymmetry**: the approved design squares the corner nearest the
+sender, which is what makes direction readable without relying on alignment alone.
+That matters for FR-064, since alignment is a spatial cue that collapses at narrow
+widths.
+
+**Open question for design**: the Agent Builder design sets the outbound bubble to a
+360px maximum and the inbound bubble to 350px. Nothing suggests the difference is
+intentional, and it is resolved with design rather than guessed at.
+
+## PwcMessageActions
+
+**Props**: `actions: MessageActions`, `labels: MessageActionsLabels` (required),
+`disabled?: boolean`.
+
+```ts
+interface MessageActionsLabels {
+  copy: string;
+  send: string;
+  rateHelpful: string;
+  rateUnhelpful: string;
+}
+```
+
+**Emits**: `copy`, `send`, and `rate` with `MessageRating`.
+
+Each action renders only when its flag is set, and the row collapses rather than
+reserving space, per FR-038. The current `rating` renders as chosen, per FR-039; the
+component does not hold that state, so a consuming product that ignores the emit will
+see the rating stay unchanged, which is correct rather than a bug.
+
+**Design references**: copy and rating,
+[104-33766](https://figma.com/design/ieaAtsfIB7ymGfTUZ7aGpV/Live-Desk---Sales?node-id=104-33766);
+send and rating,
+[117-8421](https://figma.com/design/ieaAtsfIB7ymGfTUZ7aGpV/Live-Desk---Sales?node-id=117-8421);
+copy and send together,
+[120-14933](https://figma.com/design/ieaAtsfIB7ymGfTUZ7aGpV/Live-Desk---Sales?node-id=120-14933).
 
 ## PwcComposer
 
@@ -121,41 +184,21 @@ the customer-facing implementation cannot do because it only navigates.
 
 | Prop | Type | Required | Notes |
 |------|------|----------|-------|
-| `modelValue` | `string` | yes | Controlled text, FR-027 |
+| `modelValue` | `string` | yes | Controlled text, FR-030 |
 | `variant` | `ComposerVariant` | no, default `'compact'` | FR-005 |
-| `capabilities` | `ComposerCapabilities` | no, all `true` | FR-023 |
-| `disabled` | `boolean` | no, default `false` | FR-026 |
-| `recording` | `RecordingState` | no, default `{ status: 'idle' }` | FR-024 |
-| `agentConfigOptions` | `AgentConfigOption[]` | no | Selector hidden when absent, FR-025 |
-| `selectedAgentConfigId` | `string` | no | FR-025 |
-| `maxHeightPx` | `number` | no, default `120` | Bounded growth, FR-021 |
+| `capabilities` | `ComposerCapabilities` | no, all `true` | FR-026 |
+| `disabled` | `boolean` | no, default `false` | FR-029 |
+| `recording` | `RecordingState` | no, default `{ status: 'idle' }` | FR-027 |
+| `agentConfigOptions` | `AgentConfigOption[]` | no | Selector hidden when absent, FR-028 |
+| `selectedAgentConfigId` | `string` | no | FR-028 |
+| `maxHeightPx` | `number` | no, default `120` | Bounded growth, FR-024 |
 | `labels` | `ComposerLabels` | yes | FR-003 |
 
-```ts
-interface ComposerLabels {
-  placeholder: string;
-  send: string;
-  attach: string;
-  startRecording: string;
-  finishRecording: string;
-  discardRecording: string;
-  enterVoiceMode: string;
-  agentConfig: string;
-}
-```
+**Emits**: `update:modelValue`, `send` with the trimmed text, `attach` with `File[]`,
+`start-audio-recording`, `start-camera-recording`, `finish-recording`,
+`discard-recording`, `enter-voice-mode`, `update:selectedAgentConfigId`.
 
-**Emits**
-
-| Event | Payload | Notes |
-|-------|---------|-------|
-| `update:modelValue` | `string` | FR-027 |
-| `send` | `string` | Never emitted for empty or whitespace-only text, FR-022 |
-| `attach` | `File[]` | FR-023 |
-| `start-recording` | — | FR-023 |
-| `finish-recording` | — | FR-024 |
-| `discard-recording` | — | FR-024 |
-| `enter-voice-mode` | — | FR-023 |
-| `update:selectedAgentConfigId` | `string` | FR-025 |
+`send` is never emitted for empty or whitespace-only text, per FR-025.
 
 **Slots**: `leading` and `trailing` for host controls beside the built-in ones,
 `above` for a host region such as suggestions.
@@ -167,81 +210,91 @@ interface ComposerLabels {
 | Attachment | yes | yes |
 | Audio recording | no | yes |
 | Agent config selector | no | when options supplied |
-| Voice affordance | non-emphasised | emphasised |
+| Voice affordance | outlined | filled and emphasised |
 
 `capabilities` is independent of `variant` so any control can be switched off in
-either arrangement. This is what keeps FR-023 from multiplying the variant count.
+either arrangement. This is what keeps FR-026 from multiplying the variant count.
 
-**Design references** (Principle V requires these on any design change)
+**Design references**
 
-- `expanded`: [Versionamento de Agentes, node 321-4207](https://figma.com/design/ztq89Rzy2SktUXmJYEBP4d/Versionamento-de-Agentes?node-id=321-4207)
-- `compact`: [Live Desk — Sales, node 201-12618](https://figma.com/design/ieaAtsfIB7ymGfTUZ7aGpV/Live-Desk---Sales?node-id=201-12618)
+- `expanded`: [Versionamento de Agentes 321-4400](https://figma.com/design/ztq89Rzy2SktUXmJYEBP4d/Versionamento-de-Agentes?node-id=321-4400)
+- `compact`: [Live Desk — Sales 104-33766](https://figma.com/design/ieaAtsfIB7ymGfTUZ7aGpV/Live-Desk---Sales?node-id=104-33766)
 
 ## PwcSuggestions
 
 Standalone replies offered to an attendant. Separate from `PresetReply`, which is
-attached to a message, because FR-029 requires distinguishing sending immediately from
+attached to a message, because FR-032 requires distinguishing sending immediately from
 editing first.
 
 **Props**: `suggestions: Suggestion[]`, `labels: SuggestionsLabels` (required),
 `disabled?: boolean`.
 
-```ts
-interface SuggestionsLabels {
-  sendNow: string;
-  editFirst: string;
-}
-```
+**Emits**: `send` and `edit`, each with `{ id, text }`.
 
-**Emits**: `send` with `{ id: string; text: string }`, `edit` with
-`{ id: string; text: string }`.
+Overflow wraps and stays reachable without truncating wording, per FR-033 and the
+spec's edge case about suggestions several sentences long. The approved design wraps
+rather than scrolling, which is why long suggestions grow the region instead of
+clipping.
 
-Overflow stays reachable without truncating wording, per FR-030 and the spec's edge
-case about suggestions several sentences long.
+**Design reference**: [Live Desk — Sales 117-8421](https://figma.com/design/ieaAtsfIB7ymGfTUZ7aGpV/Live-Desk---Sales?node-id=117-8421)
 
-**Design reference**: [Live Desk — Sales, node 201-12614](https://figma.com/design/ieaAtsfIB7ymGfTUZ7aGpV/Live-Desk---Sales?node-id=201-12614)
+## PwcProductSet
 
-## PwcOpeningPrompts
-
-Suggested first messages, offered only while a conversation is empty.
+The block that most needed to be standalone. It appears inside an assistant reply with
+per-card actions, inside a sent bubble as a record, and on its own.
 
 **Props**
 
 | Prop | Type | Required | Notes |
 |------|------|----------|-------|
-| `prompts` | `OpeningPrompt[]` | yes | Plain strings; wording is the identity |
-| `density` | `OpeningPromptsDensity` | no, default `'full'` | FR-052 |
-| `disabled` | `boolean` | no, default `false` | |
-| `labels` | `OpeningPromptsLabels` | yes | FR-003 |
+| `products` | `Product[]` | yes | FR-040 |
+| `mode` | `ProductSetMode` | no, default `'record'` | FR-045 |
+| `locale` | `string` | yes | Money formatting, FR-018 |
+| `currency` | `string` | yes | FR-018 |
+| `maxItems` | `number` | no | Platform limit; ten for WhatsApp, FR-046 |
+| `labels` | `ProductSetLabels` | yes | FR-003 |
 
-```ts
-interface OpeningPromptsLabels {
-  /** Accessible name pattern for one prompt; receives the prompt wording. */
-  promptAccessibleName: (prompt: string) => string;
-}
-```
-
-**Emits**: `select` with `string`, the prompt's wording, which is what FR-052 requires
-be sent verbatim.
+**Emits**: `select` with `{ productId }`, and in `actionable` mode `add-to-cart` and
+`remove`, each with `{ productId }`.
 
 **Behaviour that is part of the contract**
 
-- Renders nothing when `prompts` is empty, so a consumer can bind it unconditionally.
-- Duplicate wording collapses to a single entry.
-- `full` fills an empty conversation; `compact` sits in a narrow strip above the
-  composer. Both are densities of one component, per Principle IV.
+- Cards keep a fixed width so a long name truncates rather than reshaping the row.
+  FR-043
+- A product without `imageUrl` shows a placeholder of the same dimensions. FR-042
+- `promotionalPrice` renders beside a struck-through `unitPrice`. FR-042
+- The paging control appears only while there is more to reach. FR-044
+- Exceeding `maxItems` is surfaced, not silently truncated. FR-046
+- In `record` mode no card renders an action. FR-045
 
-**Why emptiness is the consumer's call**: the component does not receive the thread and
-does not decide when prompts stop being relevant. FR-052 phrases the rule in terms of
-the conversation having messages, and the consuming product is the only party holding
-both. Passing a thread in just to compute one boolean would couple this component to
-`Thread` for no gain.
+**Why the default is `record`**: the safer default is the one that cannot cause an
+accidental cart mutation. A consumer that forgets to set the mode gets a read-only
+set, not buttons that fire intents nobody is handling.
 
-**Why `promptAccessibleName` is a function**: it is the one label that has to
-interpolate the prompt wording, and the alternative is a template string with a
-placeholder token that this library would then have to parse, which is a small
-translation engine nobody asked for. A function keeps `vue-i18n` on the consumer's
-side of the boundary, where Principle-level constraints say translations belong.
+**Design references**: actionable,
+[117-8421](https://figma.com/design/ieaAtsfIB7ymGfTUZ7aGpV/Live-Desk---Sales?node-id=117-8421);
+record, [214-5777](https://figma.com/design/ieaAtsfIB7ymGfTUZ7aGpV/Live-Desk---Sales?node-id=214-5777).
+
+## PwcProductDetail
+
+**Props**: `product: Product`, `locale: string`, `currency: string`,
+`labels: ProductDetailLabels` (required).
+
+**Emits**: `add-to-cart` with `{ productId }`, `back`.
+
+Presents the full name, description, and price that the card truncates, per FR-047.
+
+## PwcCartIndicator
+
+**Props**: `count: number`, `labels: CartIndicatorLabels` (required).
+
+**Emits**: `open`.
+
+Separate from `PwcCart` because the approved design places it in the screen's header
+while the cart itself is a panel. Coupling them would force a consuming product to
+mount the whole cart to show a count.
+
+**Design reference**: [Live Desk — Sales 117-9543](https://figma.com/design/ieaAtsfIB7ymGfTUZ7aGpV/Live-Desk---Sales?node-id=117-9543)
 
 ## PwcCart
 
@@ -251,12 +304,14 @@ side of the boundary, where Principle-level constraints say translations belong.
 ```ts
 interface CartLabels {
   empty: string;
-  total: string;
+  subtotal: string;
   discount: string;
+  total: string;
   submit: string;
   increase: string;
   decrease: string;
   remove: string;
+  back: string;
 }
 ```
 
@@ -264,36 +319,30 @@ interface CartLabels {
 
 | Event | Payload | Notes |
 |-------|---------|-------|
-| `change-quantity` | `{ productId: string; quantity: number }` | Never emits `0`, FR-034 |
-| `remove-line` | `{ productId: string }` | Emitted instead of quantity `0`, FR-034 |
-| `submit` | `{ lines: CartLine[] }` | Unavailable while empty, FR-035 |
+| `change-quantity` | `{ productId, quantity }` | Never emits `0`, FR-051 |
+| `remove-line` | `{ productId }` | Emitted instead of quantity `0`, FR-051 |
+| `submit` | `{ lines: CartLine[] }` | Unavailable while empty, FR-052 |
+| `back` | — | Returns to the conversation |
 
 **Slots**: `empty`.
 
-Totals and discounts are displayed verbatim. The component performs no arithmetic on
-money, per FR-036 and Principle I.
+Line totals, subtotal, discount, and total are displayed verbatim. The component
+performs no arithmetic on money, per FR-053 and Principle I, including the case where
+the supplied total disagrees with the lines.
+
+**Design reference**: [Live Desk — Sales 117-9543](https://figma.com/design/ieaAtsfIB7ymGfTUZ7aGpV/Live-Desk---Sales?node-id=117-9543)
 
 ## PwcVoicePanel
 
 **Props**: `state: VoiceState`, `labels: VoiceLabels` (required).
 
-```ts
-interface VoiceLabels {
-  starting: string;
-  listening: string;
-  working: string;
-  replying: string;
-  exit: string;
-}
-```
-
-Failure wording is not in `labels` because FR-040 requires the reason to come from
+Failure wording is not in `labels` because FR-057 requires the reason to come from
 `state.failureReason`, which the consumer supplies per failure.
 
-**Emits**: `exit`, exactly once from any phase, per FR-041.
+**Emits**: `exit`, exactly once from any phase, per FR-058.
 
 The component captures no audio, runs no transcription, and synthesises no speech, per
-FR-042 and Principle I.
+FR-059 and Principle I.
 
 ## Composables
 
@@ -324,10 +373,10 @@ function useWebchatService(
 - The service instance is supplied by the caller and never constructed here, so the
   caller controls how many connections exist. Principle III.
 - Every subscription registered through `service.on` is removed in `onUnmounted`, and
-  `dispose` does the same for callers outside a component scope. FR-019, Principle III.
-- No module-level state: two calls in one screen share nothing. FR-016, FR-017.
+  `dispose` does the same for callers outside a component scope. FR-022, Principle III.
+- No module-level state: two calls in one screen share nothing. FR-019, FR-020.
 - `storageNamespace` is required for any persistence and is never derived here.
-  FR-018.
+  FR-021.
 - `thread` is read-only; mutation goes through the returned actions, so a component
   can never be the thing that changes conversation state. Principle II.
 
@@ -340,10 +389,10 @@ function fromServiceMessage(serviceMessage: unknown): Message;
 Public deliberately. A consumer that keeps its own state, which is what `chats-webapp`
 does with `AssistantMessage`, needs the normalisation without adopting the whole
 composable. This is the single place that reconciles the service's competing identity
-and direction fields, its string-versus-number timestamp, and its undeclared `order`
-form, exactly as tabulated in the data model. The parameter is `unknown` rather than
-the service's `Message` because the declared type does not match what the service
-actually emits, so validating is part of this function's job.
+and direction fields, its string-versus-number timestamp, its undeclared `order` form,
+and its undeclared `cta_message`, exactly as tabulated in the data model. The parameter
+is `unknown` rather than the service's `Message` because the declared type does not
+match what the service actually emits, so validating is part of this function's job.
 
 ## Versioning notes
 
@@ -352,7 +401,8 @@ actually emits, so validating is part of this function's job.
 | New component, new optional prop, new emit, new slot | MINOR |
 | New required member of any `labels` interface | MAJOR: breaks every existing object |
 | New `Message` kind | MINOR: `unsupported` already absorbs unknowns for older consumers |
-| Renaming a variant | MAJOR |
+| New `MessageActions` flag | MINOR: flags are optional and default to absent |
+| Renaming a variant or a presentation | MAJOR |
 | Changing a default that alters rendered output | MAJOR, per Principle VI |
 
 The `labels` row is the trap worth remembering. Requiring the object buys compile-time

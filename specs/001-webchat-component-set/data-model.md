@@ -23,7 +23,10 @@ These rules are what "normalised" means concretely, and every type below follows
 5. **Kind is the discriminant.** Every message narrows by `kind`, so a component
    renders one shape rather than probing for fields.
 6. **No wording.** No type carries a label, placeholder, or error string. Per FR-003
-   all wording arrives through props.
+   all wording arrives through props. Content that comes from the conversation, such
+   as message text or a product name, is data rather than wording.
+7. **Money is never computed.** Every monetary value is supplied and displayed
+   verbatim, per FR-053 and Principle I.
 
 ## Message
 
@@ -39,10 +42,12 @@ interface MessageBase {
   timestamp: number;
   /** Outbound only; absence means delivery is not tracked for this message. */
   deliveryState?: DeliveryState;
-  /** True while content is still arriving. Drives FR-010 without remounting. */
+  /** True while content is still arriving. Drives FR-013 without remounting. */
   streaming?: boolean;
   presetReplies?: PresetReply[];
   callToAction?: CallToAction;
+  /** Actions offered upon the message itself. FR-038. */
+  actions?: MessageActions;
 }
 
 type Message =
@@ -51,8 +56,10 @@ type Message =
   | (MessageBase & { kind: 'video'; url: string; caption?: string })
   | (MessageBase & { kind: 'audio'; url: string; durationMs?: number })
   | (MessageBase & { kind: 'document'; url: string; fileName: string; sizeBytes?: number; mimeType?: string })
+  | (MessageBase & { kind: 'location'; latitude: number; longitude: number; address?: string })
   | (MessageBase & { kind: 'options'; text: string; options: ReplyOption[] })
-  | (MessageBase & { kind: 'products'; products: Product[] })
+  | (MessageBase & { kind: 'products'; text?: string; products: Product[] })
+  | (MessageBase & { kind: 'order'; lines: CartLine[]; total: number; currency: string })
   | (MessageBase & { kind: 'unsupported'; raw: unknown });
 ```
 
@@ -60,57 +67,74 @@ type Message =
 
 | Rule | Source |
 |------|--------|
-| `id` unique within a thread; a repeated `id` is reported once and not rendered twice | Edge case: same identity supplied twice |
-| `deliveryState` only meaningful when `direction` is `'outbound'` | FR-011 |
-| `kind: 'unsupported'` preserves `raw` and still occupies a position in the thread | FR-009, edge case: unrecognised form |
-| `streaming` may only be true for `kind: 'text'` | FR-010 |
+| `id` unique within a thread; a repeated `id` renders once | Edge case: same identity supplied twice |
+| `deliveryState` only meaningful when `direction` is `'outbound'` | FR-014 |
+| `kind: 'unsupported'` preserves `raw` and still occupies a position in the thread | FR-010 |
+| `streaming` may only be true for `kind: 'text'` | FR-013 |
 | `text` may be empty; the block renders an empty state rather than collapsing | Edge case: message carries no content |
 | Media `url` that fails to load is presented as a failure, not omitted | Edge case: broken image |
+| `kind: 'text'` content is rendered as formatted text with executable markup neutralised | FR-011 |
 
 **Why `unsupported` is a member rather than a filter**: dropping unknown messages
 would leave a silent hole in a conversation, which the spec calls out explicitly. As a
 union member the gap becomes a rendering decision with a test.
 
-## Thread
+**Why `order` carries `CartLine[]`**: a placed order is a cart at the moment it was
+submitted. Reusing the type means the same line presentation serves both, and it makes
+explicit that an order's total is supplied rather than recomputed from its lines.
 
-What a conversation surface receives. This is a value object, not a store; per
-Principle II the consuming product owns the state.
+## Message presentation
 
 ```ts
-interface Thread {
-  messages: Message[];          // chronological, oldest first
-  peerActivity?: PeerActivity;  // absent when the peer is idle
-  history: HistoryState;
-}
+/** FR-012. Chosen by the consuming product; the message data is identical. */
+type MessagePresentation = 'bubble' | 'assistant';
+```
 
-type PeerActivity = 'composing' | 'working';   // FR-012 requires these be distinct
+`bubble` is the asymmetric, sender-aligned bubble that both products use for the
+conversation with the customer. `assistant` is the icon, heading, and bordered panel
+arrangement that Live Desk's Copilot uses. Per Principle IV these are presentations,
+not products, so neither name references a consuming application.
 
-interface HistoryState {
-  hasEarlier: boolean;   // drives FR-014's request signal
-  loadingEarlier: boolean;
+## Message actions
+
+```ts
+type MessageRating = 'helpful' | 'unhelpful';
+
+interface MessageActions {   // FR-038, FR-039
+  copy?: boolean;
+  send?: boolean;
+  rate?: boolean;
+  /** The rating already given, if any. Presented as chosen. */
+  rating?: MessageRating;
 }
 ```
 
-`peerActivity` is one optional field rather than two booleans so that "composing" and
-"working" cannot both be true, which would have no meaningful presentation.
+Each action is individually optional because the approved designs differ: one Copilot
+reply offers copy and rating, another offers send and rating. Modelling them as three
+independent flags rather than a preset list is what lets FR-038 be satisfied without a
+variant per combination.
 
-## Preset replies and offered options
+`rating` is stored on the actions rather than emitted-and-forgotten because FR-039
+requires a given rating to stay visible, and per Principle II the component cannot
+hold that state itself.
+
+## Preset replies, options, and suggestions
 
 Three distinct concepts that the spec keeps separate because they behave differently.
 
 ```ts
-interface PresetReply {   // attached to a message; FR-028
+interface PresetReply {   // attached to a message; FR-031
   id: string;
   label: string;
 }
 
-interface ReplyOption {   // a selectable list; FR-031
+interface ReplyOption {   // a selectable list; FR-034
   id: string;
   label: string;
   description?: string;
 }
 
-interface Suggestion {    // standalone, offered to an attendant; FR-029
+interface Suggestion {    // standalone, offered to an attendant; FR-032
   id: string;
   text: string;
 }
@@ -118,84 +142,102 @@ interface Suggestion {    // standalone, offered to an attendant; FR-029
 
 `Suggestion` carries `text` rather than `label` because its content is a full draft
 reply that can be moved into the composer for editing, whereas a `PresetReply` label
-is a short affordance the reader picks. Keeping them separate is what lets FR-029
+is a short affordance the reader picks. Keeping them separate is what lets FR-032
 distinguish sending immediately from editing first.
 
-## Calls to action and opening prompts
+## Call to action
 
 ```ts
-interface CallToAction {   // attached to a message; FR-049
+interface CallToAction {   // attached to a message; FR-035
   label: string;
   url: string;
   disabled?: boolean;
 }
-
-/** Wording is the identity, because it is sent verbatim. FR-052. */
-type OpeningPrompt = string;
-
-type OpeningPromptsDensity = 'compact' | 'full';
 ```
 
 `CallToAction` sits on `MessageBase` rather than on the text variant alone. The
 customer-facing implementation only attaches it to text messages, but nothing about
-the concept is text-specific and FR-049 is written about messages generally, so
+the concept is text-specific and FR-035 is written about messages generally, so
 restricting it would be a limit this model invents.
-
-**Validation rules**:
 
 | Rule | Source |
 |------|--------|
-| A call to action with no `url` is not presented, and reports nothing | Edge case: no destination |
-| While `disabled`, it leads nowhere and reports no activation | FR-051 |
-| Activation both navigates in a new context and reports | FR-050 |
-| Prompts are presented only while `messages` is empty | FR-052 |
-| Duplicate prompt wording collapses to one entry, since wording is the identity | Edge case: identical wording |
+| A call to action with no `url` is not presented and reports nothing | Edge case: no destination |
+| While `disabled`, it leads nowhere and reports no activation | FR-037 |
+| Activation both navigates in a new context and reports | FR-036 |
 
-**Why `OpeningPrompt` is a bare string**: the customer-facing implementation keys
-prompts by their own text and sends that text verbatim, so the wording already is the
-identity. Wrapping it in an object with a generated `id` would mean synthesising a
-value this feature receives no source for, which is the pattern FR-004 exists to
-prevent. The cost is that two identical prompts cannot be distinguished, which the
-validation rule above resolves by collapsing them.
-
-## Product and cart
+## Product
 
 ```ts
 interface Product {
   id: string;
   name: string;
   imageUrl?: string;
+  description?: string;
   /** Minor units, e.g. cents. Avoids float drift in a value the library only displays. */
   unitPrice: number;
+  /** When present, `unitPrice` is shown struck through and this is the payable amount. */
   promotionalPrice?: number;
 }
 
-interface CartLine {
-  product: Product;
-  quantity: number;      // always >= 1; see the removal rule below
-}
-
-interface Cart {
-  lines: CartLine[];
-  /** Supplied, never computed here. FR-036 and Principle I. */
-  total: number;
-  discount?: number;
-  currency: string;      // ISO 4217, used with the supplied locale for FR-015
-}
+/** FR-045. Actionable inside an assistant reply; a record inside a sent message. */
+type ProductSetMode = 'actionable' | 'record';
 ```
-
-**Validation rules**:
 
 | Rule | Source |
 |------|--------|
-| `quantity` is never 0; decrementing from 1 reports removal instead | FR-034 |
-| `total` and `discount` are displayed verbatim and never recomputed | FR-036, Principle I |
-| Money is carried in minor units and formatted with the supplied locale and currency | FR-015 |
-| An empty `lines` array makes submission unavailable | FR-035 |
+| Missing `imageUrl` shows a placeholder occupying the same space | FR-042 |
+| A `name` too long for the card is truncated, not wrapped past the card | FR-043 |
+| `promotionalPrice` renders beside a struck-through `unitPrice` | FR-042 |
+| Products beyond the supplied per-message limit are not silently discarded | FR-046 |
+| In `record` mode no card offers any action | FR-045 |
 
 **Why money is in minor units**: the library only displays these values, so the
 integer representation costs nothing and removes a class of rounding disagreement
 between what the service computes and what the screen shows.
+
+**On the per-message limit**: the approved design annotates a maximum of ten products
+per message because that is what WhatsApp accepts, and asks openly what other
+platforms allow. The limit is therefore a supplied number rather than a constant in
+this model, and FR-046 governs what happens when it is exceeded.
+
+## Cart
+
+```ts
+interface CartLine {
+  product: Product;
+  quantity: number;      // always >= 1; see the removal rule below
+  /** Supplied, never computed here. FR-053. */
+  lineTotal: number;
+}
+
+interface CartSummary {
+  subtotal: number;
+  discount?: number;
+  total: number;
+}
+
+interface Cart {
+  lines: CartLine[];
+  summary: CartSummary;
+  currency: string;      // ISO 4217, used with the supplied locale for FR-018
+}
+```
+
+| Rule | Source |
+|------|--------|
+| `quantity` is never 0; decrementing from 1 reports removal instead | FR-051 |
+| `lineTotal`, `subtotal`, `discount`, and `total` are displayed verbatim | FR-053 |
+| The count on the cart indicator comes from the supplied lines | FR-048 |
+| An empty `lines` array shows the empty state and disables submission | FR-052 |
+| A `total` disagreeing with the lines is displayed as supplied, not corrected | Edge case, FR-053 |
+
+That last rule deserves its own note. It looks wrong to display a total that does not
+match its lines, but the alternative is worse: recomputing would put pricing rules in
+a presentation layer, which Principle I forbids outright and which would produce a
+number that silently disagrees with what the customer is actually charged. A
+disagreement is a defect in the supplier, and hiding it here would make it harder to
+find.
 
 ## Composer
 
@@ -210,12 +252,14 @@ interface AgentConfigOption {
 interface ComposerCapabilities {
   attachment: boolean;
   audioRecording: boolean;
+  cameraRecording: boolean;
   voiceMode: boolean;
 }
 
 type RecordingState =
   | { status: 'idle' }
-  | { status: 'recording'; elapsedMs: number };
+  | { status: 'recording-audio'; elapsedMs: number }
+  | { status: 'recording-camera'; elapsedMs: number };
 ```
 
 **On the variant names**: Principle IV forbids consumer names in identifiers, so the
@@ -224,7 +268,10 @@ is the fuller arrangement with audio recording, the agent configuration selector
 an emphasised voice affordance, which is what the Agent Builder design specifies.
 `compact` is the plainer arrangement, which is what the Live Desk design specifies.
 Capabilities are a separate field from the variant so either arrangement can have any
-control disabled, satisfying FR-023 without multiplying variants.
+control disabled, satisfying FR-026 without multiplying variants.
+
+`RecordingState` distinguishes audio from camera because FR-027 requires different
+progress presentation for each: elapsed time for audio, a preview for camera.
 
 ## Spoken mode
 
@@ -233,22 +280,45 @@ type VoicePhase = 'starting' | 'listening' | 'working' | 'replying' | 'failed';
 
 interface VoiceState {
   phase: VoicePhase;
-  /** Revised in place while listening; FR-038. */
+  /** Revised in place while listening; FR-055. */
   partialTranscript?: string;
-  /** Normalised 0..1 input level; FR-039. */
+  /** Normalised 0..1 input level; FR-056. */
   inputLevel?: number;
   /** Present only when phase is 'failed'; wording supplied by the consumer. */
   failureReason?: string;
 }
 ```
 
-`phase` is a single enum rather than independent booleans because FR-037 requires the
+`phase` is a single enum rather than independent booleans because FR-054 requires the
 phases to be visually distinct, which only holds if exactly one is active.
+
+## Thread
+
+What a conversation surface receives. A value object, not a store; per Principle II
+the consuming product owns the state.
+
+```ts
+interface Thread {
+  messages: Message[];          // chronological, oldest first
+  peerActivity?: PeerActivity;  // absent when the peer is idle
+  history: HistoryState;
+}
+
+type PeerActivity = 'composing' | 'working';   // FR-015 requires these be distinct
+
+interface HistoryState {
+  hasEarlier: boolean;   // drives FR-017's request signal
+  loadingEarlier: boolean;
+}
+```
+
+`peerActivity` is one optional field rather than two booleans so that "composing" and
+"working" cannot both be true, which would have no meaningful presentation.
 
 ## Persistence namespace
 
 ```ts
-/** Supplied by the consuming product; never derived here. FR-018, Principle III. */
+/** Supplied by the consuming product; never derived here. FR-021, Principle III. */
 type StorageNamespace = string;
 ```
 
@@ -266,12 +336,14 @@ Assumptions.
 |---------------|-------------|----------------|
 | `id` or `ID` | `id` | Prefer `id`; fall back to `ID`; synthesise if both absent |
 | `direction` (`incoming`/`outgoing`/`in`/`out`) and `sender` (`response`/`client`) | `direction` | Map all six spellings onto two values; `direction` wins when both are present |
-| `type` plus the undeclared `order` form | `kind` | Map known forms; anything unmapped becomes `unsupported` with `raw` retained |
+| `type`, plus the undeclared `order` form | `kind` | Map known forms; anything unmapped becomes `unsupported` with `raw` retained |
 | `timestamp` (number, or string for orders) | `timestamp` | Coerce to number |
 | `status` | `deliveryState` | `'error'` becomes `'failed'`; applied to outbound messages only |
 | `text` and `caption` | `text` or `caption` per kind | Media caption goes to `caption`, not `text` |
 | `quick_replies` | `presetReplies` | Rename to the model's convention |
 | `cta_message` (`display_text`, `url`) | `callToAction` (`label`, `url`) | Undeclared in the service's `Message` interface but emitted in practice; dropped when `url` is absent |
+| `metadata.latitude`, `metadata.longitude`, `metadata.address` | `location` fields | The service carries location in `metadata` rather than as typed fields |
+| `order.product_items` | `order` lines | Line totals are taken as supplied, never multiplied out |
 | `metadata`, `hidden`, `persisted`, `__customFields` | not exposed | Transport concerns; excluded from the contract |
 
 `cta_message` is worth noting as further evidence for the decision in FR-004: the field
@@ -279,8 +351,10 @@ is consumed by the customer-facing implementation and does not appear in the ser
 published `Message` interface at all. A contract that adopted the declared type would
 not have had a place to put it.
 
-Because this function is the only consumer of the service's shape, correcting the
-service's declarations later changes one file rather than every block.
+**What the adapter does not produce**: `actions`, `MessagePresentation`, and
+`ProductSetMode` have no source in the service. They are decisions the consuming
+product makes about how to present a message, not facts about the message, so they are
+supplied alongside the thread rather than derived from it.
 
 ## Entity relationships
 
@@ -289,12 +363,17 @@ Thread
  ├── Message[]                      (chronological)
  │    ├── PresetReply[]             (optional, kind-independent)
  │    ├── CallToAction              (optional, kind-independent)
+ │    ├── MessageActions            (optional, kind-independent)
  │    ├── ReplyOption[]             (kind: 'options')
- │    └── Product[]                 (kind: 'products')
+ │    ├── Product[]                 (kind: 'products')
+ │    └── CartLine[]                (kind: 'order')
  ├── PeerActivity                   (optional)
  └── HistoryState
 
 Cart ── CartLine[] ── Product
+     └── CartSummary
+
+Product[] ── ProductSetMode         (also usable standalone; FR-041)
 
 Composer ── ComposerVariant + ComposerCapabilities + RecordingState
          └── AgentConfigOption[]    (optional)
@@ -302,11 +381,13 @@ Composer ── ComposerVariant + ComposerCapabilities + RecordingState
 VoiceState                          (independent of Thread)
 
 Suggestion[]                        (independent of Thread; offered to an attendant)
-
-OpeningPrompt[]                     (independent of Thread; offered only while empty)
 ```
 
 `Suggestion[]` and `VoiceState` sit outside `Thread` deliberately: both are about the
 attendant's or speaker's current situation rather than the conversation's record, and
 coupling them to `Thread` would force a consumer to rebuild a thread object to change
 a voice phase.
+
+`Product[]` appears twice on purpose. It is reachable through a message of kind
+`products` and usable on its own, which is the reuse FR-041 requires and SC-012
+verifies.

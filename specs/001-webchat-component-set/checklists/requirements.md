@@ -101,9 +101,35 @@ Re-validated after the amendment: all items still pass. The two remaining gaps, 
 browsing beyond a carousel and order message presentation, are recorded rather than
 specified, which is what FR-048 requires and does not affect this checklist.
 
+**Iteration 4 — scope rule established and approved designs read**:
+
+The user supplied a scope rule and seven Figma nodes. Both changed the spec materially
+enough that the Requirements section was rewritten with sequential numbering rather
+than patched; it now holds 67 requirements against the previous 52. References in
+`plan.md`, `data-model.md`, and `contracts/public-api.md` were rewritten to match.
+
+*The scope rule*: everything inside the chat is in scope, the widget shell is not.
+This closed every open parity question at once. Product browsing and order message
+presentation, previously recorded as open gaps, are now in scope. Camera recording,
+previously excluded for want of a design, is in scope for the same reason. Conversation
+starters, added in iteration 3 as "opening prompts", are removed again because neither
+consuming product needs them.
+
+*The designs* added four capabilities no earlier version covered: per-message actions
+(copy, send, rate), a second message presentation for the Copilot, the product set
+living inside a message in two modes, and the cart as a panel with a count indicator
+and a subtotal/discount/total summary. They also inverted the Unnnic decision: the
+designs use Unnnic variables throughout but Code-Connect to only three Unnnic
+components, so the library is a token consumer first and a component consumer second.
+
+Re-validated after the rewrite: all items still pass. Two measurements are flagged for
+design confirmation in the plan's Open items rather than guessed at, which is why they
+do not appear here as `[NEEDS CLARIFICATION]`: neither blocks planning, and both are
+questions for a designer rather than decisions for the spec.
+
 ## Notes
 
 - All checklist items pass.
-- `/speckit-clarify` was not needed; the one decision it would have surfaced was
-  resolved in iteration 2, and the scope gap in iteration 3 was resolved with the user
-  during planning.
+- `/speckit-clarify` was not needed. The one decision it would have surfaced was
+  resolved in iteration 2; the scope questions in iterations 3 and 4 were resolved
+  directly with the user during planning.

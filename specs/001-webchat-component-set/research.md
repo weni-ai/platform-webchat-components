@@ -50,14 +50,24 @@ steps.
 ## D2: Component catalogue
 
 **Decision**: Storybook with the Vite builder, plus `@storybook/addon-a11y`.
+Confirmed by the user as the intended tool.
 
-**Rationale**: FR-047 requires every block to be inspectable in every variant and
-state without running a consuming product, SC-009 requires design review against that
-catalogue, and SC-005 requires a first integration to be possible from the catalogue
-and docs alone. This library also has no host application to smoke-test it, which
-Principle VIII names as the reason tests carry so much weight here. Storybook is the
-only option that covers per-variant isolation, a11y feedback, and a browsable
-reference in one tool.
+**Rationale**: FR-066 requires every block to be inspectable in every variant and
+state *and* documented for use, without running a consuming product or reading library
+source. SC-009 requires design review against that catalogue and SC-005 requires a
+first integration to be possible from it alone. This library also has no host
+application to smoke-test it, which Principle VIII names as the reason tests carry so
+much weight here. Storybook is the only option that covers per-variant isolation, a11y
+feedback, prose documentation, and a browsable reference in one tool.
+
+**Consequence for authoring**: because FR-066 asks for a usage playbook and not only a
+gallery, every block needs a documentation page alongside its stories, covering what
+it is for, its props and events, and a copyable integration example. Stories alone
+would satisfy design review but not SC-005.
+
+**Precedent**: Unnnic itself publishes a Storybook at `unnnic.stg.cloud.weni.ai`,
+linked from the Figma component descriptions. Matching that convention makes this
+library's catalogue familiar to the same audience.
 
 **Alternatives considered**: Histoire is Vue-native and lighter, but its ecosystem has
 stalled and it has no equivalent accessibility integration, which would leave SC-008
@@ -192,72 +202,152 @@ therefore built against `webchat-service` 1.10.3's published surface (`init`,
 `getHistory`, `start/stop/cancelRecording`, `on`/`off`) with no consumer able to
 validate it end to end until one adopts it.
 
-## D9: Unnnic primitives to compose rather than rebuild
+## D9: Unnnic is a token source first, a component source second
 
-Principle V requires preferring Unnnic primitives, and the 3.30.0 inventory turns out
-to cover far more of this feature than expected. These exist and should be composed:
+**Decision**: Take every colour, space, radius, typography value, and shadow from
+Unnnic tokens, without exception. Take Unnnic *components* only where the approved
+design actually is that component. Where the design is bespoke, build the block from
+tokens rather than bending a primitive to fit.
 
-| Need | Unnnic primitive |
-|------|------------------|
-| Audio recording UI in the composer | `unnnicAudioRecorder` |
-| Horizontally browsable products | `unnnicCarousel` |
-| Chat text presentation | `unnnicChatText` |
-| Host-owned expandable trace | `unnnicCollapse` |
-| Suggestions and preset replies | `unnnicChip` |
-| Agent configuration selector | `unnnicDropdown` with `unnnicDropdownItem`, or `unnnicSelectSmart` |
-| Composer text entry | `unnnicTextArea` |
-| Buttons and icon buttons | `unnnicButton`, `unnnicButtonIcon` |
-| Icons | `unnnicIcon` |
-| History loading placeholder | `unnnicSkeletonLoading` |
-| Attachment picking | `unnnicDropArea`, `unnnicUploadArea` |
-| Emoji entry | `unnnicEmojiPicker` |
+**Rationale**: An earlier version of this research proposed composing thirteen Unnnic
+primitives, on the reasoning that Principle V prefers primitives over
+reimplementation. Reading the approved designs showed that reasoning was inverted. The
+designs are built almost entirely from Unnnic *variables* — `--space-1` through
+`--space-7`, `--radius-2`, `--background/bg-base`, `--background/bg-base-soft`,
+`--background/bg-accent-plain`, `--border/border-base`, `--foreground/fg-base`,
+`--foreground/fg-emphasized`, `--foreground/fg-muted`, `--gray/gray-1`, `Shadow/shadow-1`
+— while only three components are actually Code-Connected to Unnnic.
 
-This materially reduces the amount of new component code, and it is a stronger
-Principle V position than styling bespoke elements with tokens. Each of these still
-needs verification against the approved design before adoption; where a primitive
-does not fit the design, the finding belongs in the task that discovers it.
+Principle V already anticipates this: it requires using an Unnnic primitive "that
+fits". The approved design is what decides fit, and for most of this feature the
+answer is that nothing fits, because the design is specific to the CX Platform chat.
+
+**What the designs actually Code-Connect to Unnnic**:
+
+| Unnnic component | Where the design uses it |
+|------------------|--------------------------|
+| `UnnnicButton` | Composer controls, product card send, carousel paging, cart actions |
+| `UnnnicChip` | Attendant suggestions |
+| `UnnnicIcon` | Every icon |
+
+**What must be built from tokens, despite an Unnnic component existing**:
+
+| Block | Unnnic component that exists | Why it is not used |
+|-------|------------------------------|--------------------|
+| Product set | `unnnicCarousel` | The design is a 136px product card strip with per-card actions and an edge paging control, not a slide carousel |
+| Message | `unnnicChatText` | Two bespoke presentations are required: an asymmetric bubble with one square corner, and an assistant block with icon, heading, and bordered panel |
+| Composer | `unnnicTextArea` | The design is a bordered container with a divider and a control row, not a text area with a label |
+| Cart | — | No equivalent exists |
+| Audio recording | `unnnicAudioRecorder` | Needs verification against the design before either adopting or rejecting |
+
+**Alternatives considered**: Using `unnnicCarousel` and restyling it was rejected
+because the design differs structurally, not cosmetically, and overriding a design
+system component's internals is worse for upgrades than owning the markup. Building
+everything bespoke including buttons and chips was rejected because it discards
+consistency where the design genuinely is the Unnnic component.
+
+**Open verification**: `unnnicAudioRecorder` is the one primitive whose fit is
+genuinely unknown, because no approved design shows the recording state. It is
+checked against the customer-facing implementation's behaviour when story 2 is built.
 
 ## D10: Parity baseline with webchat-react
 
-FR-048 and SC-011 require gaps to be recorded rather than discovered later. The
-`webchat-react` source contains 45 components, which classify as follows.
+The scope rule is now explicit: everything inside the chat is in scope, and the widget
+shell is not. Applying that to the 45 components in the `webchat-react` source gives a
+clean split with no judgement calls left open.
 
-**Covered by this spec**: `MessagesList`, `MessageContainer`, `MessageText`,
-`MessageImage`, `MessageVideo`, `MessageAudio`, `MessageDocument`, `TypingIndicator`,
-`ThinkingIndicator`, `InputBox`, `InputFile`, `AudioRecorder`, `QuickReplies`,
-`ListMessage`, `Cart`, `EmptyCart`, `CounterControls`, `PriceDisplay`,
-`VoiceModeButton`, `VoiceModeError`, `WaveformVisualizer`.
+**In scope**, because they are inside the chat:
 
-**Intentionally excluded**, because they are widget chrome for a customer's own site
-and the CX Platform supplies its own surrounding screen: `Launcher`, `Header`,
-`Widget`, `PoweredBy`, `AlreadyInUse`, `ThemeProvider`, `Tooltip`, `Badge`, `Avatar`,
-`Icon`, `Button`, `Radio`. Also excluded: `CameraRecording`, which the spec already
-scopes out.
+| Group | Components |
+|-------|-----------|
+| Thread and messages | `MessagesList`, `MessageContainer`, `MessageText`, `MessageImage`, `MessageVideo`, `MessageAudio`, `MessageDocument`, `MessageOrder` |
+| Indicators | `TypingIndicator`, `ThinkingIndicator` |
+| Composing | `InputBox`, `InputFile`, `AudioRecorder`, `CameraRecording` |
+| Offerings | `QuickReplies`, `ListMessage`, `CallToAction` |
+| Products | `ProductCatalog`, `ProductDetails`, `InlineProduct`, `ShowItems` |
+| Cart | `Cart`, `EmptyCart`, `CounterControls`, `PriceDisplay` |
+| Spoken mode | `VoiceModeButton`, `VoiceModeError`, `WaveformVisualizer` |
 
-**Gaps found, and how each was resolved**:
+**Out of scope, widget shell**: `Launcher`, `Header`, `Widget`, `PoweredBy`,
+`AlreadyInUse`, `ThemeProvider`. The CX Platform supplies its own surrounding screen.
 
-| Capability | `webchat-react` components | Service support | Outcome |
-|------------|---------------------------|-----------------|---------|
-| Call to action | `CallToAction` | Emits `cta_message`, undeclared | **Added to scope** as FR-049 to FR-051 |
-| Conversation starters | `ConversationStarters`, `ConversationStarterButton` | Yes: `getStarters`, `clearStarters` | **Added to scope** as FR-052, named "opening prompts" |
-| Product browsing beyond a carousel | `ProductCatalog`, `ProductDetails`, `InlineProduct`, `ShowItems` | — | Open gap, recorded |
-| Order message presentation | `MessageOrder` | Yes: `buildOrderMessage` | Open gap, recorded |
+**Out of scope, conversation starters**: `ConversationStarters`,
+`ConversationStarterButton`. Neither consuming product needs them. The service's
+`getStarters` and `clearStarters` stay unused by this feature.
 
-The first two were flagged rather than filed quietly, because calls to action were
-named explicitly as a required capability when this library was scoped and the service
-already exposes a starters API, so both looked like spec omissions rather than
-deliberate exclusions. Both were confirmed in scope and the spec was amended.
+**Not components, absorbed elsewhere**: `Button`, `Icon`, `Radio`, `Avatar`, `Badge`,
+`Tooltip` are generic primitives. Per D9 these come from Unnnic where the design uses
+Unnnic, and are internal markup otherwise.
 
-Reading the source settled two things that guesswork would have got wrong. A call to
-action reaches the UI as `message.cta_message` with `display_text` and `url`, a field
-absent from the service's published `Message` interface, which is further evidence for
-D5. And conversation starters are plain strings keyed by their own wording, with the
-customer-facing implementation already offering `compact` and `full` densities, which
-is why the amended FR-052 requires two densities rather than one.
+**Two reversals from the previous round**, both worth stating because they contradict
+earlier decisions in this same document:
 
-**Decision**: record all four in `PARITY.md` at bootstrap. The two remaining gaps sit
-close to the cart work, so they are the natural candidates for the next spec once cart
-behaviour exists in the service.
+- `CameraRecording` was previously excluded on the grounds that no approved design
+  offers it. The scope rule overrides that: it is inside the chat, the service already
+  supports it, and leaving it out would be a capability regression.
+- Conversation starters were previously **added** to scope as "opening prompts", with
+  FR-052 and a dedicated component. They are now removed again. Neither product needs
+  them, and building an unused block would be scope for its own sake.
+
+**Reading the source settled two things** that guesswork would have got wrong. A call
+to action reaches the UI as `message.cta_message` with `display_text` and `url`, a
+field absent from the service's published `Message` interface, which is further
+evidence for D5. And the product card carries a promotional price shown as a struck
+original beside the payable amount, which is a presentation rule rather than a
+calculation, so it stays inside FR-053's prohibition on computing money.
+
+**Decision**: `PARITY.md` at bootstrap lists all 45 components against these four
+classifications. With the scope rule applied there are no open gaps, which is what
+makes SC-011 checkable rather than aspirational.
+
+## D12: What the approved designs added that the spec had missed
+
+Seven Figma nodes were read: two for Agent Builder's version comparison, five for Live
+Desk. Four capabilities appeared in them that no prior version of the spec covered.
+
+**Per-message actions**. The Live Desk Copilot puts a row of actions under each
+assistant reply: copy, send onward, and thumbs up or down. This is how the attendant
+actually uses the Copilot, so its absence would have made the Copilot unusable. Added
+as FR-038 and FR-039.
+
+**Two message presentations, not one**. Agent Builder uses asymmetric chat bubbles
+aligned by sender, with one square corner on the sender's side. Live Desk's Copilot
+uses an entirely different arrangement: an icon and a heading above a bordered content
+panel. The same message data has to render either way, which is a variant on one
+component rather than two components. Added as FR-012.
+
+**The product set lives inside a message**. It appears in two situations: inside an
+assistant reply where each card has add-to-cart and remove actions, and inside an
+already-sent bubble where it is a record with no actions. This is what makes FR-041's
+standalone availability a requirement rather than a nicety, and it generalises to
+FR-008.
+
+**The cart is a panel, not a list**. It has a count indicator that opens it, per-line
+quantity steppers with a line total, and a summary of subtotal, discount, and total
+before the submit action. The earlier spec had a flat list with one total. Added as
+FR-048 through FR-050.
+
+One design annotation is a hard constraint rather than a note: the product set is
+limited to ten items per message, because that is what WhatsApp accepts. The
+annotation also asks what other platforms allow, which is why FR-046 forbids silently
+dropping the excess and the spec treats the limit as supplied configuration rather
+than a constant.
+
+**Design references**:
+
+| Block | File | Node |
+|-------|------|------|
+| Agent Builder thread with execution trace | `ztq89Rzy2SktUXmJYEBP4d` | `321:4373` |
+| Agent Builder composer | `ztq89Rzy2SktUXmJYEBP4d` | `321:4400` |
+| Live Desk Copilot reply with actions | `ieaAtsfIB7ymGfTUZ7aGpV` | `104:33766` |
+| Live Desk product set inside a reply | `ieaAtsfIB7ymGfTUZ7aGpV` | `117:8421` |
+| Live Desk cart panel | `ieaAtsfIB7ymGfTUZ7aGpV` | `117:9543` |
+| Live Desk order placed and cart link | `ieaAtsfIB7ymGfTUZ7aGpV` | `120:14933` |
+| Live Desk product set as a sent record | `ieaAtsfIB7ymGfTUZ7aGpV` | `214:5777` |
+
+One inconsistency to resolve with design rather than guess: the Agent Builder thread
+sets the outbound bubble to a 360px maximum width and the inbound bubble to 350px.
+Nothing in the design suggests the difference is intentional.
 
 ## D11: Theming
 
