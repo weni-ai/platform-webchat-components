@@ -198,6 +198,14 @@ the owned model, product-specific names generalise into presentations, and the A
 Builder variants get added. A task that extracts a component is not done until those
 four are true of it.
 
+Three components need more than that, and reading them changed the effort estimate.
+The thread owns **no scroll behaviour at all** today, so FR-016 and FR-017 are new
+work rather than extraction. The composer holds its own draft, validates files itself,
+and raises a global alert, all of which have to come apart before FR-030 and FR-001
+hold. And the cart **computes its line totals locally**, which Principle I forbids
+here, so that arithmetic moves to `@weni/webchat-service` instead of coming across.
+Research D13 tabulates this per component.
+
 1. **Bootstrap** — `package.json`, Vite library mode, Vitest, ESLint, Storybook with
    documentation pages, `PARITY.md`, `CHANGELOG.md`, the owned model in `src/types/`,
    the Unnnic token layer, and CI.
@@ -265,9 +273,21 @@ Live Desk's carousel caps anything. The ten-item annotation in Figma is WhatsApp
 delivery limit, which constrains whoever composes the outbound message, not a
 component that displays a set. FR-046 now says the set renders everything supplied.
 
-## Remaining risk
+## Remaining risks
 
 `staging` is under continuous delivery, so the extraction base moves while this work
 happens. The mitigation is to extract early and in one pass per component rather than
 letting the library and the branch drift, and it is an argument for starting with the
 components Live Desk is least likely to keep changing.
+
+The cart is the sharper risk. Its arithmetic lives in the component today, so
+extracting it is blocked on the service gaining that behaviour, and shipping the cart
+presentation before then would leave a component that cannot be wired up. Story 7
+already sits behind that dependency, but it is worth naming that the dependency is now
+evidenced rather than assumed: `Cart.vue` computes line totals in a local helper.
+
+One open item for the design of the composer: `chats-webapp` puts attachment and audio
+recording behind one popover menu, while the Agent Builder design shows them as two
+adjacent buttons separated by a divider. Both are approved in their own product, so
+this is a genuine variant difference rather than a mistake, and it is resolved when
+story 2 reconciles the two arrangements.

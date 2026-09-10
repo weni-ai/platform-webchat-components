@@ -222,13 +222,21 @@ Principle V already anticipates this: it requires using an Unnnic primitive "tha
 fits". The approved design is what decides fit, and for most of this feature the
 answer is that nothing fits, because the design is specific to the CX Platform chat.
 
-**What the designs actually Code-Connect to Unnnic**:
+**Which Unnnic components are actually used**, combining what the designs Code-Connect
+with what `chats-webapp` already imports:
 
-| Unnnic component | Where the design uses it |
-|------------------|--------------------------|
-| `UnnnicButton` | Composer controls, product card send, carousel paging, cart actions |
+| Unnnic component | Where |
+|------------------|-------|
+| `UnnnicButton` | Composer controls, product card actions, carousel paging, cart actions, message actions |
+| `UnnnicIcon` | Every icon, including the assistant's `bi:stars` and the cart's image placeholder |
 | `UnnnicChip` | Attendant suggestions |
-| `UnnnicIcon` | Every icon |
+| `UnnnicSkeletonLoading` | History loading placeholders in the thread |
+| `UnnnicPopover` family | The composer's attachment menu |
+| `UnnnicToolTip` | Rating affordances |
+
+`UnnnicCallAlert` is also used by `chats-webapp`'s composer for file validation errors,
+but it does not come across: it is a global side effect and it carries wording, which
+FR-001 and FR-003 both rule out. Validation failures become emitted intents instead.
 
 **What must be built from tokens, despite an Unnnic component existing**:
 
@@ -386,7 +394,9 @@ library after it was built, which meant writing each component twice. Extracting
 `chats-webapp` replaces its local copy with an import, and Agent Builder gets a
 component that has already run in a real product.
 
-**What extraction still has to do**, since these components are not library-ready:
+**What extraction still has to do.** Reading the five most structural components
+showed the gap is larger than a rename, and in three places the existing code does
+something this library is not allowed to do. Four adaptations apply to everything:
 
 - Remove `$t(...)` calls. Every component reaches into `vue-i18n` directly, which
   FR-003 forbids; wording becomes required `labels` props.
@@ -396,8 +406,22 @@ component that has already run in a real product.
 - Generalise naming away from the consuming product: `AiMessage` and `HumanMessage`
   become one component with the `assistant` and `bubble` presentations, per Principle
   IV.
-- Add the Agent Builder variants, which do not exist there: the `expanded` composer
-  and the bubble presentation with its execution-trace slot.
+- Add the Agent Builder variants, which do not exist there.
+
+Beyond that, per component:
+
+| Component | What is missing or must change |
+|-----------|-------------------------------|
+| `AssistantMessageList` | Owns **no scroll behaviour at all**: no auto-advance, no reading-position preservation, no request for earlier history. FR-016 and FR-017 are new work, not extraction. It also has no delivery states, no timestamps, and no per-message slots. |
+| `AssistantInput` | Holds its draft internally, so FR-030's controlled text is a change, not a config. It validates file size and type itself and raises `UnnnicCallAlert`, which is both a side effect and hardcoded wording; both become emitted intents. Its attachment control is a popover menu rather than the separate mic and attach buttons the Agent Builder design shows, so the two arrangements have to reconcile as variants. |
+| `AiMessage` | Holds the thumbs rating in local state and writes to the clipboard itself. Both move out: FR-039 supplies the rating as data and FR-001 makes copying an emitted intent. |
+| `Cart` | **Computes line totals locally.** Principle I forbids that here, so the arithmetic moves to `@weni/webchat-service` rather than coming across. This is the clearest evidence yet for the cart dependency the spec already records. |
+| `ProductCarousel` | Closest to library-ready. Its `getQuantity` function prop becomes a plain record, because a function is opaque to reactivity tracking and a quantity changed elsewhere would not reliably re-render the card. |
+
+The composer's structure is worth carrying over deliberately: it swaps itself entirely
+for the recording bar, the voice panel, or the voice error, rather than nesting them.
+That keeps each state's markup independent and is why the recording bar can be a small
+component with only a timer and a discard control.
 
 **Alternatives considered**: writing from scratch and letting `chats-webapp` migrate
 later was the previous plan. It is rejected now that the code is known to exist: it
@@ -408,6 +432,12 @@ component.
 
 **Risk**: `staging` is a moving branch under continuous delivery, so extraction targets
 a moving base. This is an argument for extracting early rather than late.
+
+**Revised expectation**: extraction saves most of the product, cart, media, indicator,
+and voice presentation work, which is the bulk by component count. It saves little on
+the thread, because the scroll behaviour that FR-016 and FR-017 describe does not
+exist anywhere yet, and it saves less than it appears on the composer and the cart,
+where the existing behaviour has to be taken apart before it can be reused.
 
 ## D14: Message width is a proportion, not a fixed size
 
