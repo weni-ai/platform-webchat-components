@@ -246,9 +246,13 @@ system component's internals is worse for upgrades than owning the markup. Build
 everything bespoke including buttons and chips was rejected because it discards
 consistency where the design genuinely is the Unnnic component.
 
-**Open verification**: `unnnicAudioRecorder` is the one primitive whose fit is
-genuinely unknown, because no approved design shows the recording state. It is
-checked against the customer-facing implementation's behaviour when story 2 is built.
+**`unnnicAudioRecorder` is resolved, and rejected.** It was the one primitive whose
+fit was unknown. `chats-webapp`'s `staging` branch already ships
+`AudioRecordingBar.vue`, built bespoke from Unnnic SCSS tokens rather than from that
+primitive: a `mm:ss` timer preceded by a pulsing dot in `$unnnic-color-fg-critical`,
+plus a tertiary `UnnnicButton` with a `close` icon to discard. Finishing happens
+through the composer's own send control, not inside the bar. That is the behaviour to
+carry over, so no Unnnic recorder is used.
 
 ## D10: Parity baseline with webchat-react
 
@@ -327,11 +331,15 @@ quantity steppers with a line total, and a summary of subtotal, discount, and to
 before the submit action. The earlier spec had a flat list with one total. Added as
 FR-048 through FR-050.
 
-One design annotation is a hard constraint rather than a note: the product set is
-limited to ten items per message, because that is what WhatsApp accepts. The
-annotation also asks what other platforms allow, which is why FR-046 forbids silently
-dropping the excess and the spec treats the limit as supplied configuration rather
-than a constant.
+One design annotation looked like a hard constraint but is not one for this library:
+the product set is annotated as limited to ten items per message, because that is what
+WhatsApp accepts, and the annotation asks what other platforms allow. Neither existing
+implementation caps anything. `webchat-react` has no product limit anywhere in its
+source, and `chats-webapp`'s `ProductCarousel.vue` renders every product it is given,
+relying on horizontal scroll with paging controls that appear on hover and hide at
+each edge. The ten-item cap is a constraint on what may be *delivered* in one WhatsApp
+message, which belongs to whoever composes the outbound message, not to a component
+that displays a set. FR-046 therefore states that the set renders everything supplied.
 
 **Design references**:
 
@@ -345,9 +353,86 @@ than a constant.
 | Live Desk order placed and cart link | `ieaAtsfIB7ymGfTUZ7aGpV` | `120:14933` |
 | Live Desk product set as a sent record | `ieaAtsfIB7ymGfTUZ7aGpV` | `214:5777` |
 
-One inconsistency to resolve with design rather than guess: the Agent Builder thread
-sets the outbound bubble to a 360px maximum width and the inbound bubble to 350px.
-Nothing in the design suggests the difference is intentional.
+## D13: chats-webapp's staging branch is the seed, not a blank page
+
+**Decision**: Build this library by extracting and generalising the Desk Copilot
+components already on `chats-webapp`'s `staging` branch, rather than writing them from
+scratch and migrating later.
+
+**What is already there**, under
+`src/components/chats/ContactInfo/Redesign/DeskCopilot/`, in Vue 3 with `<script
+setup>`, TypeScript, and Unnnic SCSS tokens, most with colocated tests:
+
+| Area | Components |
+|------|-----------|
+| Messages | `AiMessage`, `HumanMessage`, `AssistantMessageList`, `SummaryMessage`, `media/AudioMessage`, `media/FileMessage`, `media/ImageMessage` |
+| Composing | `AssistantInput`, `AudioRecordingBar` |
+| Indicators | `ThinkingIndicator`, `TypingIndicator` |
+| Offerings | `SuggestionChips` |
+| Products | `ProductCarousel`, `ProductCarouselCard`, `ProductListSections`, `ProductQuantityControls` |
+| Cart | `Cart`, `CartBadge` |
+| Spoken mode | `VoiceModeButton`, `VoiceModeError`, `VoiceModePanel` |
+| Other | `Disclaimer` |
+
+**Rationale**: this is close to the entire scope of this feature, already written in
+the target stack, already reviewed, and already exercised by tests. The quality is
+what this library needs: `ProductCarousel.vue` removes its scroll listener, its resize
+listener, and its `ResizeObserver` in `onUnmounted`, which is exactly the teardown
+Principle III demands and the kind of detail a from-scratch rewrite tends to miss.
+Rewriting would discard that and then have to rediscover it.
+
+It also changes the migration story. The earlier plan had `chats-webapp` adopting the
+library after it was built, which meant writing each component twice. Extracting means
+`chats-webapp` replaces its local copy with an import, and Agent Builder gets a
+component that has already run in a real product.
+
+**What extraction still has to do**, since these components are not library-ready:
+
+- Remove `$t(...)` calls. Every component reaches into `vue-i18n` directly, which
+  FR-003 forbids; wording becomes required `labels` props.
+- Replace `@/services/assistant/types` with the owned model from FR-004. The current
+  types are the transport shape, carrying `product_retailer_id`, `price` as
+  `string | number`, and `quickReplies` as bare strings.
+- Generalise naming away from the consuming product: `AiMessage` and `HumanMessage`
+  become one component with the `assistant` and `bubble` presentations, per Principle
+  IV.
+- Add the Agent Builder variants, which do not exist there: the `expanded` composer
+  and the bubble presentation with its execution-trace slot.
+
+**Alternatives considered**: writing from scratch and letting `chats-webapp` migrate
+later was the previous plan. It is rejected now that the code is known to exist: it
+would duplicate work already done, and it would leave two implementations diverging
+during the build. Vendoring the files unchanged was rejected because the four
+adaptations above are precisely what separates an application component from a library
+component.
+
+**Risk**: `staging` is a moving branch under continuous delivery, so extraction targets
+a moving base. This is an argument for extracting early rather than late.
+
+## D14: Message width is a proportion, not a fixed size
+
+**Decision**: Bubbles take `max-width: 75%` of the thread's width, the same value for
+both directions.
+
+**Rationale**: the Figma inconsistency, 360px outbound against 350px inbound, turns
+out to be a red herring. `chats-webapp` already sets `max-width: 75%` on both
+`HumanMessage` and `AiMessage`, and 75% is what those Figma pixel values approximate:
+on the 452px frame they were drawn in, 360px is 80% and 350px is 77%. So the pixel
+difference is mock-drawing noise, and a single proportion reproduces the intent.
+
+A proportion is also the only thing that works for a library. Agent Builder renders
+two threads side by side in narrow columns, while Live Desk uses a panel of its own
+width. A fixed 360px would overflow the first and under-use the second.
+
+**Why not 90%**: a wider cap weakens the cue that a bubble does not span the full
+width, which is what makes direction legible before the reader parses alignment. It
+also pushes line length past comfortable reading at panel widths. 75% keeps both, and
+has the advantage of already being the value in the code.
+
+**Worth revisiting if** a consuming product ever renders a thread at full page width,
+where 75% would produce very long lines. A readability ceiling alongside the
+proportion would solve it, but neither consumer has that layout today and adding it
+now would be a guess.
 
 ## D11: Theming
 

@@ -186,8 +186,17 @@ importing across a boundary that a lint rule can forbid.
 
 ## Sequencing
 
-Story priority from the spec drives order, with one adjustment: bootstrap comes first
-because the repository has no build.
+Story priority from the spec drives order, with two adjustments: bootstrap comes first
+because the repository has no build, and most components are **extracted** rather than
+written, because `chats-webapp`'s `staging` branch already ships around twenty of them
+in the target stack. Research D13 records what exists and what extraction still has to
+change.
+
+Extraction is not copying. Each component needs the same four adaptations: wording
+moves from `$t(...)` calls to required `labels` props, the transport types give way to
+the owned model, product-specific names generalise into presentations, and the Agent
+Builder variants get added. A task that extracts a component is not done until those
+four are true of it.
 
 1. **Bootstrap** — `package.json`, Vite library mode, Vitest, ESLint, Storybook with
    documentation pages, `PARITY.md`, `CHANGELOG.md`, the owned model in `src/types/`,
@@ -238,16 +247,27 @@ a second message presentation, the product set living inside a message, and the 
 being a panel with a count indicator and a summary rather than a flat list. Research
 D12 records what each came from.
 
-## Open items
+## Questions closed by reading the existing code
 
-**Two Figma measurements to confirm with design**, neither blocking. The Agent Builder
-thread sets outbound bubbles to a 360px maximum and inbound to 350px, with nothing
-suggesting the difference is deliberate. And no approved design covers the audio
-recording state, so whether `unnnicAudioRecorder` fits is checked against the
-customer-facing implementation when story 2 is built.
+Three open items from the previous round are resolved, none by guessing.
 
-**One design annotation is an open product question**, quoted from the Figma file: the
-product set is capped at ten items because that is what WhatsApp accepts, and the
-annotation asks what other platforms allow. FR-046 keeps this safe by forbidding
-silent truncation, and the limit is a supplied number rather than a constant, so the
-answer can arrive later without a contract change.
+**Message width** is 75% of the thread, the same for both directions. `chats-webapp`
+already uses that value, and it is what the Figma pixel measurements approximate on
+the frame they were drawn in, so the 360-against-350 difference was mock noise rather
+than intent. Research D14 has the reasoning, including why 90% was not chosen.
+
+**Audio recording** does not use `unnnicAudioRecorder`. `chats-webapp` ships
+`AudioRecordingBar.vue`, a bespoke timer with a pulsing indicator and a discard
+control, built from Unnnic tokens. That is the behaviour carried over.
+
+**The product set has no item limit.** Neither the customer-facing implementation nor
+Live Desk's carousel caps anything. The ten-item annotation in Figma is WhatsApp's
+delivery limit, which constrains whoever composes the outbound message, not a
+component that displays a set. FR-046 now says the set renders everything supplied.
+
+## Remaining risk
+
+`staging` is under continuous delivery, so the extraction base moves while this work
+happens. The mitigation is to extract early and in one pass per component rather than
+letting the library and the branch drift, and it is an argument for starting with the
+components Live Desk is least likely to keep changing.

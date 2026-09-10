@@ -146,9 +146,10 @@ sender, which is what makes direction readable without relying on alignment alon
 That matters for FR-064, since alignment is a spatial cue that collapses at narrow
 widths.
 
-**Open question for design**: the Agent Builder design sets the outbound bubble to a
-360px maximum and the inbound bubble to 350px. Nothing suggests the difference is
-intentional, and it is resolved with design rather than guessed at.
+**Width**: bubbles cap at 75% of the thread's width, the same for both directions. A
+proportion rather than a fixed size, because Agent Builder renders two threads in
+narrow side-by-side columns while Live Desk uses a panel of its own width. Research
+D14 records why the Figma pixel values do not contradict this.
 
 ## PwcMessageActions
 
@@ -251,11 +252,11 @@ per-card actions, inside a sent bubble as a record, and on its own.
 | `mode` | `ProductSetMode` | no, default `'record'` | FR-045 |
 | `locale` | `string` | yes | Money formatting, FR-018 |
 | `currency` | `string` | yes | FR-018 |
-| `maxItems` | `number` | no | Platform limit; ten for WhatsApp, FR-046 |
+| `quantities` | `CartQuantities` | no, default `{}` | Quantity per product already in the cart, FR-045 |
 | `labels` | `ProductSetLabels` | yes | FR-003 |
 
-**Emits**: `select` with `{ productId }`, and in `actionable` mode `add-to-cart` and
-`remove`, each with `{ productId }`.
+**Emits**: `select` with `{ productId }`, and in `actionable` mode `add`, `remove`,
+`increment`, and `decrement`, each with `{ productId }`.
 
 **Behaviour that is part of the contract**
 
@@ -263,13 +264,25 @@ per-card actions, inside a sent bubble as a record, and on its own.
   FR-043
 - A product without `imageUrl` shows a placeholder of the same dimensions. FR-042
 - `promotionalPrice` renders beside a struck-through `unitPrice`. FR-042
-- The paging control appears only while there is more to reach. FR-044
-- Exceeding `maxItems` is surfaced, not silently truncated. FR-046
+- Paging controls appear only when the track overflows, and each hides at its own
+  edge. FR-044
+- Every product supplied is reachable; no cap is applied. FR-046
 - In `record` mode no card renders an action. FR-045
+- A product with a non-zero entry in `quantities` shows that quantity with controls to
+  change it. FR-045
 
-**Why the default is `record`**: the safer default is the one that cannot cause an
-accidental cart mutation. A consumer that forgets to set the mode gets a read-only
+**On `quantities` as a plain record**: Live Desk's existing carousel takes a
+`getQuantity(productId)` function instead. A record is preferred here because a
+function prop is opaque to Vue's reactivity tracking, so a quantity change elsewhere
+does not reliably re-render the card; a record does. The information is identical.
+
+**Why the default mode is `record`**: the safer default is the one that cannot cause
+an accidental cart mutation. A consumer that forgets to set the mode gets a read-only
 set, not buttons that fire intents nobody is handling.
+
+**Reference implementation**: `chats-webapp`'s `ProductCarousel.vue` on `staging`,
+whose scroll-state syncing, hover-revealed paging, and `onUnmounted` teardown of its
+scroll listener, resize listener, and `ResizeObserver` are carried over as-is.
 
 **Design references**: actionable,
 [117-8421](https://figma.com/design/ieaAtsfIB7ymGfTUZ7aGpV/Live-Desk---Sales?node-id=117-8421);

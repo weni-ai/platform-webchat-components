@@ -315,8 +315,8 @@ offered in the record one.
    set, **Then** the removal is reported carrying the product.
 7. **Given** the record situation, **When** the set is displayed, **Then** no card
    offers any action.
-8. **Given** a set larger than the platform's per-message limit, **When** it is
-   displayed, **Then** the excess is not silently dropped.
+8. **Given** a set of many products, **When** it is displayed, **Then** every product
+   supplied is reachable, with no cap applied by the presentation itself.
 9. **Given** a product opened for more detail, **When** it is displayed, **Then** its
    full name, description, and price are legible, and returning to the set is possible.
 10. **Given** a single product referenced inside a text message, **When** it is
@@ -422,7 +422,8 @@ displayed as it changes, and that the exit intent is reported from any phase.
   be reached?
 - What happens when text formatting arrives containing markup that would execute if
   rendered as-is?
-- What happens when a product set exceeds the limit the delivery platform accepts?
+- What happens when a product set holds far more products than fit, given that no cap
+  is applied?
 - What happens when a product has no price, or a promotional price above the original?
 - What happens when a cart's supplied total disagrees with the sum of its lines?
 
@@ -562,14 +563,17 @@ displayed as it changes, and that the exit intent is reported from any phase.
   distorting the card.
 - **FR-044**: The product set MUST offer a way to move through products that do not
   fit, and that control MUST appear only while there is more to reach.
-- **FR-045**: The product set MUST support an actionable presentation, where each card
-  can be added to the cart or removed and each action is reported, and a record
-  presentation, where no card offers any action.
-- **FR-046**: The product set MUST NOT silently discard products beyond the limit the
-  delivery platform accepts.
-- **FR-047**: A single product MUST be presentable inline within a message, and a
-  product MUST be presentable in expanded detail with its full name, description, and
-  price.
+- **FR-045**: The product set MUST support an actionable presentation and a record
+  presentation. In the actionable presentation each card can be added to the cart or
+  removed, a product already in the cart shows its quantity and allows that quantity
+  to be changed from the card, and every action is reported. In the record
+  presentation no card offers any action.
+- **FR-046**: The product set MUST present every product supplied, without a cap of
+  its own. Any per-message limit a delivery platform imposes belongs to whoever
+  composes the outbound message, not to the presentation.
+- **FR-047**: A single product MUST be presentable inline within a message, a product
+  MUST be presentable in expanded detail with its full name, description, and price,
+  and a set of products grouped into titled sections MUST be presentable.
 
 **Cart**
 
@@ -729,9 +733,15 @@ displayed as it changes, and that the exit intent is reported from any phase.
   navigating without reporting would make that impossible. Navigating is kept because
   an offering that leads somewhere should behave like a link, including opening in a new
   context and supporting the browser's own ways of following it.
-- The per-message product limit is ten, which is what the delivery platform accepts.
-  This is treated as supplied configuration rather than a constant, because it is a
-  property of the delivery platform and other platforms may differ.
+- The product set imposes no item limit. The approved design annotates a ten-item cap
+  because that is what WhatsApp accepts in one message, but neither existing
+  implementation caps anything: the customer-facing implementation has no product
+  limit in its source, and Live Desk's own carousel renders everything it is given
+  behind horizontal scrolling. The cap constrains what may be delivered, which belongs
+  to whoever composes the outbound message.
+- Blocks with no approved design of their own follow the customer-facing
+  implementation's behaviour, and where Live Desk has already built the block, that
+  existing implementation is the reference for both behaviour and construction.
 - Each consuming product owns its own translations and supplies all wording, because
   each already maintains its own translation catalogue and pipeline.
 - Live Desk shows one conversation at a time and switches it as the attendant changes

@@ -174,7 +174,7 @@ interface Product {
   name: string;
   imageUrl?: string;
   description?: string;
-  /** Minor units, e.g. cents. Avoids float drift in a value the library only displays. */
+  /** As supplied, in the currency's own units. Never converted or recomputed. */
   unitPrice: number;
   /** When present, `unitPrice` is shown struck through and this is the payable amount. */
   promotionalPrice?: number;
@@ -182,6 +182,11 @@ interface Product {
 
 /** FR-045. Actionable inside an assistant reply; a record inside a sent message. */
 type ProductSetMode = 'actionable' | 'record';
+
+interface ProductSection {   // FR-047
+  title: string;
+  products: Product[];
+}
 ```
 
 | Rule | Source |
@@ -189,17 +194,21 @@ type ProductSetMode = 'actionable' | 'record';
 | Missing `imageUrl` shows a placeholder occupying the same space | FR-042 |
 | A `name` too long for the card is truncated, not wrapped past the card | FR-043 |
 | `promotionalPrice` renders beside a struck-through `unitPrice` | FR-042 |
-| Products beyond the supplied per-message limit are not silently discarded | FR-046 |
+| Every product supplied is reachable; no cap is applied | FR-046 |
 | In `record` mode no card offers any action | FR-045 |
+| In `actionable` mode a product in the cart shows and can change its quantity | FR-045 |
 
-**Why money is in minor units**: the library only displays these values, so the
-integer representation costs nothing and removes a class of rounding disagreement
-between what the service computes and what the screen shows.
+**On price representation**: an earlier version of this model held money in minor
+units as an integer. That was wrong for this data. The catalogue supplies
+`price` and `sale_price` as `string | number` holding decimal amounts, so minor units
+would require multiplying by one hundred, and multiplying money is a computation this
+library is forbidden from doing by FR-053 and Principle I. The adapter coerces to a
+number and nothing else touches the value; formatting is left to the locale and
+currency the consumer supplies.
 
-**On the per-message limit**: the approved design annotates a maximum of ten products
-per message because that is what WhatsApp accepts, and asks openly what other
-platforms allow. The limit is therefore a supplied number rather than a constant in
-this model, and FR-046 governs what happens when it is exceeded.
+**On the per-message limit**: there is none here. The approved design annotates ten
+products per message because that is WhatsApp's limit, but that constrains delivery,
+not display, and neither existing implementation caps anything.
 
 ## Cart
 
@@ -210,6 +219,9 @@ interface CartLine {
   /** Supplied, never computed here. FR-053. */
   lineTotal: number;
 }
+
+/** Quantity per product, for the actionable product set. FR-045. */
+type CartQuantities = Readonly<Record<string, number>>;
 
 interface CartSummary {
   subtotal: number;
@@ -340,7 +352,9 @@ Assumptions.
 | `timestamp` (number, or string for orders) | `timestamp` | Coerce to number |
 | `status` | `deliveryState` | `'error'` becomes `'failed'`; applied to outbound messages only |
 | `text` and `caption` | `text` or `caption` per kind | Media caption goes to `caption`, not `text` |
-| `quick_replies` | `presetReplies` | Rename to the model's convention |
+| `quick_replies` | `presetReplies` | Rename to the model's convention. Live Desk currently carries these as bare strings while the service types them as objects; the adapter accepts both and normalises to the object form |
+| `product_retailer_id` | `Product.id` | The catalogue's identifier becomes the model's identity |
+| `price`, `sale_price` (`string \| number`) | `unitPrice`, `promotionalPrice` | Coerced to number; the decimal amount is preserved, not converted |
 | `cta_message` (`display_text`, `url`) | `callToAction` (`label`, `url`) | Undeclared in the service's `Message` interface but emitted in practice; dropped when `url` is absent |
 | `metadata.latitude`, `metadata.longitude`, `metadata.address` | `location` fields | The service carries location in `metadata` rather than as typed fields |
 | `order.product_items` | `order` lines | Line totals are taken as supplied, never multiplied out |
