@@ -42,6 +42,7 @@ interface MessageBase {
   /** True while content is still arriving. Drives FR-010 without remounting. */
   streaming?: boolean;
   presetReplies?: PresetReply[];
+  callToAction?: CallToAction;
 }
 
 type Message =
@@ -119,6 +120,43 @@ interface Suggestion {    // standalone, offered to an attendant; FR-029
 reply that can be moved into the composer for editing, whereas a `PresetReply` label
 is a short affordance the reader picks. Keeping them separate is what lets FR-029
 distinguish sending immediately from editing first.
+
+## Calls to action and opening prompts
+
+```ts
+interface CallToAction {   // attached to a message; FR-049
+  label: string;
+  url: string;
+  disabled?: boolean;
+}
+
+/** Wording is the identity, because it is sent verbatim. FR-052. */
+type OpeningPrompt = string;
+
+type OpeningPromptsDensity = 'compact' | 'full';
+```
+
+`CallToAction` sits on `MessageBase` rather than on the text variant alone. The
+customer-facing implementation only attaches it to text messages, but nothing about
+the concept is text-specific and FR-049 is written about messages generally, so
+restricting it would be a limit this model invents.
+
+**Validation rules**:
+
+| Rule | Source |
+|------|--------|
+| A call to action with no `url` is not presented, and reports nothing | Edge case: no destination |
+| While `disabled`, it leads nowhere and reports no activation | FR-051 |
+| Activation both navigates in a new context and reports | FR-050 |
+| Prompts are presented only while `messages` is empty | FR-052 |
+| Duplicate prompt wording collapses to one entry, since wording is the identity | Edge case: identical wording |
+
+**Why `OpeningPrompt` is a bare string**: the customer-facing implementation keys
+prompts by their own text and sends that text verbatim, so the wording already is the
+identity. Wrapping it in an object with a generated `id` would mean synthesising a
+value this feature receives no source for, which is the pattern FR-004 exists to
+prevent. The cost is that two identical prompts cannot be distinguished, which the
+validation rule above resolves by collapsing them.
 
 ## Product and cart
 
@@ -233,7 +271,13 @@ Assumptions.
 | `status` | `deliveryState` | `'error'` becomes `'failed'`; applied to outbound messages only |
 | `text` and `caption` | `text` or `caption` per kind | Media caption goes to `caption`, not `text` |
 | `quick_replies` | `presetReplies` | Rename to the model's convention |
+| `cta_message` (`display_text`, `url`) | `callToAction` (`label`, `url`) | Undeclared in the service's `Message` interface but emitted in practice; dropped when `url` is absent |
 | `metadata`, `hidden`, `persisted`, `__customFields` | not exposed | Transport concerns; excluded from the contract |
+
+`cta_message` is worth noting as further evidence for the decision in FR-004: the field
+is consumed by the customer-facing implementation and does not appear in the service's
+published `Message` interface at all. A contract that adopted the declared type would
+not have had a place to put it.
 
 Because this function is the only consumer of the service's shape, correcting the
 service's declarations later changes one file rather than every block.
@@ -244,6 +288,7 @@ service's declarations later changes one file rather than every block.
 Thread
  ├── Message[]                      (chronological)
  │    ├── PresetReply[]             (optional, kind-independent)
+ │    ├── CallToAction              (optional, kind-independent)
  │    ├── ReplyOption[]             (kind: 'options')
  │    └── Product[]                 (kind: 'products')
  ├── PeerActivity                   (optional)
@@ -257,6 +302,8 @@ Composer ── ComposerVariant + ComposerCapabilities + RecordingState
 VoiceState                          (independent of Thread)
 
 Suggestion[]                        (independent of Thread; offered to an attendant)
+
+OpeningPrompt[]                     (independent of Thread; offered only while empty)
 ```
 
 `Suggestion[]` and `VoiceState` sit outside `Thread` deliberately: both are about the

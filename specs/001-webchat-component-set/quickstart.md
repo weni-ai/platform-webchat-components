@@ -131,10 +131,9 @@ Blocks without an approved design are confirmed in the same review before releas
 ### SC-011 — parity gaps recorded
 
 Read `PARITY.md` at the repository root. Every `webchat-react` component is classified
-as ported, intentionally excluded, or an open gap. The four open gaps identified
-during research are calls to action, conversation starters, product browsing beyond a
-carousel, and order message presentation. This criterion fails if any of them is
-undocumented, not if any of them is unbuilt.
+as ported, intentionally excluded, or an open gap. Two open gaps remain after the spec
+amendment: product browsing beyond a carousel, and order message presentation. This
+criterion fails if either is undocumented, not if either is unbuilt.
 
 ## Consumer smoke test
 

@@ -79,6 +79,7 @@ interface ThreadLabels {
 | `select-product` | `{ messageId: string; productId: string }` | FR-032 |
 | `retry-message` | `{ messageId: string }` | Failed outbound message, FR-011 |
 | `open-document` | `{ messageId: string; url: string }` | FR-009 |
+| `activate-call-to-action` | `{ messageId: string; url: string }` | Reported in addition to navigating, FR-050 |
 
 **Slots**
 
@@ -103,6 +104,16 @@ a real case appears that variants and the two injection slots cannot serve.
 - Prepending earlier history preserves the reader's viewport position. FR-013
 - A duplicate `id` renders once. Edge case in the spec.
 - `kind: 'unsupported'` occupies a position using `labels.unsupportedMessage`. FR-009
+- A `callToAction` renders as a real link opening in a new context, and additionally
+  emits `activate-call-to-action`. FR-050
+
+**On the call to action emitting as well as navigating**: this is the one place where a
+block does something rather than only reporting an intent, which reads at first like a
+breach of FR-001. It is deliberate. Rendering an actual link is what makes the
+affordance behave the way people expect, including middle-click, modifier-click, and
+"copy link address", none of which survive being turned into a click handler. Reporting
+alongside it is what lets a consuming product record or intercept the activation, which
+the customer-facing implementation cannot do because it only navigates.
 
 ## PwcComposer
 
@@ -189,6 +200,48 @@ Overflow stays reachable without truncating wording, per FR-030 and the spec's e
 case about suggestions several sentences long.
 
 **Design reference**: [Live Desk — Sales, node 201-12614](https://figma.com/design/ieaAtsfIB7ymGfTUZ7aGpV/Live-Desk---Sales?node-id=201-12614)
+
+## PwcOpeningPrompts
+
+Suggested first messages, offered only while a conversation is empty.
+
+**Props**
+
+| Prop | Type | Required | Notes |
+|------|------|----------|-------|
+| `prompts` | `OpeningPrompt[]` | yes | Plain strings; wording is the identity |
+| `density` | `OpeningPromptsDensity` | no, default `'full'` | FR-052 |
+| `disabled` | `boolean` | no, default `false` | |
+| `labels` | `OpeningPromptsLabels` | yes | FR-003 |
+
+```ts
+interface OpeningPromptsLabels {
+  /** Accessible name pattern for one prompt; receives the prompt wording. */
+  promptAccessibleName: (prompt: string) => string;
+}
+```
+
+**Emits**: `select` with `string`, the prompt's wording, which is what FR-052 requires
+be sent verbatim.
+
+**Behaviour that is part of the contract**
+
+- Renders nothing when `prompts` is empty, so a consumer can bind it unconditionally.
+- Duplicate wording collapses to a single entry.
+- `full` fills an empty conversation; `compact` sits in a narrow strip above the
+  composer. Both are densities of one component, per Principle IV.
+
+**Why emptiness is the consumer's call**: the component does not receive the thread and
+does not decide when prompts stop being relevant. FR-052 phrases the rule in terms of
+the conversation having messages, and the consuming product is the only party holding
+both. Passing a thread in just to compute one boolean would couple this component to
+`Thread` for no gain.
+
+**Why `promptAccessibleName` is a function**: it is the one label that has to
+interpolate the prompt wording, and the alternative is a template string with a
+placeholder token that this library would then have to parse, which is a small
+translation engine nobody asked for. A function keeps `vue-i18n` on the consumer's
+side of the boundary, where Principle-level constraints say translations belong.
 
 ## PwcCart
 

@@ -192,22 +192,26 @@ position for exactly those messages and that the thread's own rendering is uncha
 
 ---
 
-### User Story 5 - Choose from offered replies (Priority: P5)
+### User Story 5 - Act on what the conversation offers (Priority: P5)
 
-When the conversation offers preset replies, the person can pick one instead of
-typing. These arrive in two shapes: replies attached to a message, and standalone
-suggestions offered to an attendant. Live Desk's attendant can either send a
-suggestion straight away or drop it into their own composer to edit first. Richer
-offerings are also supported: a selectable list of options, and a horizontally
-browsable set of products.
+Instead of typing, the person can act on what the conversation puts in front of
+them. This covers several distinct offerings: preset replies attached to a message,
+standalone suggestions offered to an attendant, a selectable list of options, a
+horizontally browsable set of products, a call to action that leads somewhere outside
+the conversation, and opening prompts offered before the conversation has begun.
+
+Live Desk's attendant can either send a suggestion straight away or drop it into
+their own composer to edit first. Opening prompts disappear once the conversation is
+under way, so they never compete with the thread for attention.
 
 **Why this priority**: It is the first block that is genuinely product-specific
 rather than shared, so it can follow the common ones. Live Desk's Copilot needs it
 to be useful, but the Copilot is still usable with typed replies only.
 
-**Independent Test**: Supply each offering shape, activate one option in each, and
-verify the correct choice is reported once, distinguishing a request to send
-immediately from a request to edit first.
+**Independent Test**: Supply each offering shape, activate one in each, and verify the
+correct choice is reported exactly once, distinguishing a request to send immediately
+from a request to edit first, and distinguishing an offering that sends a message from
+one that leads outside the conversation.
 
 **Acceptance Scenarios**:
 
@@ -225,6 +229,16 @@ immediately from a request to edit first.
 6. **Given** a browsable set of products, **When** the person moves through it,
    **Then** each product's identifying details stay legible and selecting one is
    reported.
+7. **Given** a message carrying a call to action, **When** the person activates it,
+   **Then** they reach the destination in a new context without losing the
+   conversation, and the activation is reported so the consuming product can act on it.
+8. **Given** a call to action, **When** it is displayed, **Then** it is recognisable as
+   leading outside the conversation rather than as sending a reply.
+9. **Given** opening prompts and a conversation with no messages yet, **When** the
+   person picks one, **Then** it is reported as the message to send and the prompts are
+   no longer offered.
+10. **Given** opening prompts, **When** the conversation already has messages, **Then**
+    the prompts are not offered.
 
 ---
 
@@ -313,6 +327,11 @@ displayed as it changes, and that the exit intent is reported from any phase.
 - What happens when a conversation surface is removed from the screen while a
   recording, playback, or voice session is still active?
 - What happens when the same message identity is supplied twice?
+- What happens when a call to action has no destination, or a destination that cannot
+  be reached?
+- What happens when opening prompts arrive after the conversation has already started?
+- What happens when two opening prompts carry identical wording, given that wording is
+  their identity?
 - What happens when the reading direction, font size, or available width differs
   substantially from the reference designs?
 
@@ -417,6 +436,10 @@ displayed as it changes, and that the exit intent is reported from any phase.
 - **FR-032**: A horizontally browsable set of products MUST be presentable, and
   selecting a product MUST be reported.
 
+Calls to action and opening prompts are two further offerings, specified in **Calls to
+action and opening prompts** below. They are numbered later because they were added by
+amendment after the surrounding requirements were already referenced elsewhere.
+
 **Cart**
 
 - **FR-033**: The cart MUST present each item with its identifying details, unit
@@ -463,6 +486,21 @@ displayed as it changes, and that the exit intent is reported from any phase.
 - **FR-048**: The set of webchat capabilities present in the customer-facing webchat
   implementation but absent from this block set MUST be recorded and kept current.
 
+**Calls to action and opening prompts**
+
+- **FR-049**: A message MUST be able to carry a call to action that leads to a
+  destination outside the conversation, presented so that it is distinguishable from
+  an offering that sends a reply.
+- **FR-050**: Activating a call to action MUST take the person to its destination in a
+  new context, so the conversation is not replaced, and MUST also report the activation
+  so the consuming product can record or intercept it.
+- **FR-051**: A call to action MUST be presentable as unavailable, and while
+  unavailable MUST NOT lead anywhere or report an activation.
+- **FR-052**: Opening prompts MUST be presentable while a conversation has no messages
+  and MUST NOT be presented once it has any. Picking one MUST report the prompt's
+  wording as the message to send. Two presentation densities MUST be offered so the
+  prompts can sit in a narrow strip above the composer or fill an empty conversation.
+
 ### Key Entities
 
 - **Conversation**: an ordered collection of messages belonging to one connection,
@@ -476,6 +514,10 @@ displayed as it changes, and that the exit intent is reported from any phase.
   report when chosen.
 - **Suggestion**: an offered response to an attendant, which can either be sent
   immediately or moved into the composer for editing.
+- **Call to action**: an offering attached to a message that carries wording to show
+  and a destination outside the conversation, and can be unavailable.
+- **Opening prompt**: a suggested first message, offered only while the conversation is
+  empty. Its wording is its identity, because it is sent verbatim.
 - **Product**: an item that can appear in a browsable set or a cart. Carries a stable
   identity, identifying details, a unit price, and optionally a promotional price.
 - **Cart**: a collection of products with quantities, plus the total and discount
@@ -541,6 +583,18 @@ displayed as it changes, and that the exit intent is reported from any phase.
   implemented inside these blocks.
 - Recording an audio message and entering spoken mode are two separate capabilities
   with separate controls, as shown in the approved Agent Builder design.
+- A call to action both navigates and reports. The customer-facing implementation only
+  navigates, but a CX Platform product needs to record or intercept the activation, and
+  navigating without reporting would make that impossible. Navigating is kept because
+  an offering that leads somewhere should behave like a link, including opening in a new
+  context and supporting the browser's own ways of following it.
+- Opening prompts carry no separate identity because the customer-facing implementation
+  sends their wording verbatim and treats that wording as the identity. Inventing an
+  identity here would be a value this feature synthesises rather than receives, which
+  is the pattern FR-004 exists to avoid.
+- Fetching opening prompts is the consuming product's job, using the capability the
+  shared logic layer already exposes for it. This feature only presents the prompts it
+  is given.
 - Each consuming product owns its own translations and supplies all wording, because
   each already maintains its own translation catalogue and pipeline.
 - Live Desk shows one conversation at a time and switches it as the attendant changes

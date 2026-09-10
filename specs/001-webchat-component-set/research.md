@@ -234,24 +234,30 @@ and the CX Platform supplies its own surrounding screen: `Launcher`, `Header`,
 `Icon`, `Button`, `Radio`. Also excluded: `CameraRecording`, which the spec already
 scopes out.
 
-**Gaps this spec does not cover**, which need a decision before the parity document
-can claim to be current:
+**Gaps found, and how each was resolved**:
 
-| Capability | `webchat-react` components | Service support |
-|------------|---------------------------|-----------------|
-| Call to action | `CallToAction` | — |
-| Conversation starters | `ConversationStarters`, `ConversationStarterButton` | Yes: `getStarters`, `clearStarters` |
-| Product browsing beyond a carousel | `ProductCatalog`, `ProductDetails`, `InlineProduct`, `ShowItems` | — |
-| Order message presentation | `MessageOrder` | Yes: `buildOrderMessage` |
+| Capability | `webchat-react` components | Service support | Outcome |
+|------------|---------------------------|-----------------|---------|
+| Call to action | `CallToAction` | Emits `cta_message`, undeclared | **Added to scope** as FR-049 to FR-051 |
+| Conversation starters | `ConversationStarters`, `ConversationStarterButton` | Yes: `getStarters`, `clearStarters` | **Added to scope** as FR-052, named "opening prompts" |
+| Product browsing beyond a carousel | `ProductCatalog`, `ProductDetails`, `InlineProduct`, `ShowItems` | — | Open gap, recorded |
+| Order message presentation | `MessageOrder` | Yes: `buildOrderMessage` | Open gap, recorded |
 
-Call to action and conversation starters are worth flagging rather than filing
-quietly. Calls to action were named explicitly as a required capability when this
-library was scoped, and the service already exposes a starters API, so both look like
-spec omissions rather than deliberate exclusions.
+The first two were flagged rather than filed quietly, because calls to action were
+named explicitly as a required capability when this library was scoped and the service
+already exposes a starters API, so both looked like spec omissions rather than
+deliberate exclusions. Both were confirmed in scope and the spec was amended.
 
-**Decision**: record all four in `PARITY.md` at bootstrap, and treat the first two as
-requiring a spec amendment before implementation reaches them. Do not expand scope
-inside this plan; the spec is the place that decides what is in scope.
+Reading the source settled two things that guesswork would have got wrong. A call to
+action reaches the UI as `message.cta_message` with `display_text` and `url`, a field
+absent from the service's published `Message` interface, which is further evidence for
+D5. And conversation starters are plain strings keyed by their own wording, with the
+customer-facing implementation already offering `compact` and `full` densities, which
+is why the amended FR-052 requires two densities rather than one.
+
+**Decision**: record all four in `PARITY.md` at bootstrap. The two remaining gaps sit
+close to the cart work, so they are the natural candidates for the next spec once cart
+behaviour exists in the service.
 
 ## D11: Theming
 

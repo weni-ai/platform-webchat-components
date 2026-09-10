@@ -8,8 +8,9 @@
 
 Bootstrap `@weni/platform-webchat-components` from an empty repository and deliver the
 webchat conversation blocks that Agent Builder and Live Desk both need: a thread, a
-composer with two presentation variants, standalone suggestions, a cart, and a spoken
-mode panel, plus a service adaptation layer behind a separate entry point.
+composer with two presentation variants, standalone suggestions, opening prompts, a
+cart, and a spoken mode panel, plus a service adaptation layer behind a separate entry
+point.
 
 The approach is presentational components composed from Unnnic primitives, driven
 entirely by props, reporting intents through emits, and accepting host content through
@@ -21,9 +22,10 @@ a consumer's graph.
 Research produced two findings that changed the shape of this plan. First, Unnnic
 3.30.0 already ships `unnnicAudioRecorder`, `unnnicCarousel`, `unnnicChatText`,
 `unnnicCollapse`, and `unnnicEmojiPicker`, so several blocks are composition rather
-than new code. Second, four `webchat-react` capabilities fall outside this spec, two of
-which look like omissions rather than exclusions; those are recorded rather than
-silently absorbed.
+than new code. Second, four `webchat-react` capabilities fell outside the spec as
+first written; calls to action and opening prompts were subsequently added by
+amendment, and the remaining two are recorded as open gaps rather than silently
+absorbed.
 
 ## Technical Context
 
@@ -52,8 +54,8 @@ without perceptible stalling, per SC-007
 **Constraints**: no domain logic, no user-facing copy, no router or store dependency,
 no bundled peer dependencies, unbounded simultaneous instances
 
-**Scale/Scope**: five public components, two public composables, two consuming
-products, roughly 21 `webchat-react` components at parity
+**Scale/Scope**: six public components, two public composables, two consuming
+products, roughly 24 `webchat-react` components at parity
 
 Full reasoning for each choice, including alternatives rejected, is in
 [research.md](./research.md). No NEEDS CLARIFICATION items remain.
@@ -97,8 +99,9 @@ deviation is recorded in Complexity Tracking; every other gate passes.
       forward, including the one non-obvious case: a new required member of any
       `labels` object is MAJOR.
 - [x] **VII. Parity tracked**: `PARITY.md` at bootstrap classifies all 45
-      `webchat-react` components as ported, intentionally excluded, or an open gap, with
-      four open gaps identified during research.
+      `webchat-react` components as ported, intentionally excluded, or an open gap. Two
+      open gaps remain after the amendment: product browsing beyond a carousel, and
+      order message presentation.
 - [x] **VIII. Tests**: every component ships tests for each variant and each slot
       contract; composables ship tests for mount, teardown, and two concurrent
       instances against a stubbed service. Named test targets are in the quickstart.
@@ -138,6 +141,7 @@ src/
 │   ├── PwcThread/            # thread, message kinds, indicators
 │   ├── PwcComposer/          # compact and expanded variants
 │   ├── PwcSuggestions/       # standalone attendant suggestions
+│   ├── PwcOpeningPrompts/    # suggested first messages, two densities
 │   ├── PwcCart/              # cart presentation
 │   └── PwcVoicePanel/        # spoken mode presentation
 ├── composables/
@@ -188,7 +192,8 @@ because the repository has no build.
 4. **US3, independence** (P3) — the multi-instance and teardown guarantees, plus
    `useWebchatService` and the shared-composer scenario.
 5. **US4, host content** (P4) — the two message slots.
-6. **US5, offered replies** (P5) — preset replies, options, products, suggestions.
+6. **US5, offerings** (P5) — preset replies, options, products, suggestions, calls to
+   action, opening prompts.
 7. **US6, cart** (P6) — blocked on cart behaviour landing in the service.
 8. **US7, spoken mode** (P7) — blocked on voice session behaviour landing in the
    service.
@@ -197,14 +202,35 @@ Steps 7 and 8 can be built as presentation ahead of their service dependencies, 
 FR-036 and FR-042 forbid this library from owning that logic anyway. What they cannot
 do is be validated end to end, which the quickstart records as a known limit.
 
-## Open items for the user, not blockers
+## Amendment: calls to action and opening prompts
 
-Research surfaced two capabilities in `webchat-react` that this spec does not cover
-and that look like omissions rather than deliberate exclusions: **calls to action**
-(`CallToAction`) and **conversation starters** (`ConversationStarters`, with
-`getStarters` and `clearStarters` already exposed by the service). Calls to action were
-named explicitly as a required capability when this library was scoped.
+Research surfaced two `webchat-react` capabilities the spec did not cover and that
+looked like omissions rather than exclusions. Both were confirmed in scope and the spec
+was amended, adding FR-049 through FR-052, four acceptance scenarios to story 5, two
+entities, and three edge cases. They are numbered after FR-048 rather than beside the
+other offerings because the surrounding requirements were already referenced from this
+plan, the data model, and the contract, and renumbering would have silently invalidated
+those references.
 
-Both are recorded in `PARITY.md` as open gaps, which satisfies FR-048. Neither is
-added to scope here, because the spec is what decides scope. If they belong in this
-feature, the spec needs an amendment before implementation reaches story 5.
+Reading the source settled two design questions that guesswork would have got wrong:
+
+- A call to action arrives on the service message as `cta_message`, carrying
+  `display_text` and `url`. That field does not appear in the service's published
+  `Message` interface at all, which is further evidence for the FR-004 decision: a
+  contract built on the declared type would have had nowhere to put it.
+- Opening prompts are plain strings in the customer-facing implementation, keyed and
+  sent by their own wording. The model keeps them as strings rather than inventing an
+  identity, since a synthesised identity is the pattern FR-004 exists to avoid.
+
+One deliberate divergence from the customer-facing implementation: activating a call to
+action there only navigates. Here it navigates and reports, because a CX Platform
+product needs to record or intercept the activation. The reasoning, including why it is
+not a breach of FR-001, is in the contract.
+
+## Remaining parity gaps
+
+Two capabilities stay out of scope and are recorded in `PARITY.md` per FR-048:
+product browsing beyond a carousel (`ProductCatalog`, `ProductDetails`, `InlineProduct`,
+`ShowItems`) and order message presentation (`MessageOrder`). Both sit close to the cart
+work in story 6, so they are the natural candidates for the next spec once cart
+behaviour exists in the service.

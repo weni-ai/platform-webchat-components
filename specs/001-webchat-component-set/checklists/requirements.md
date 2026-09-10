@@ -83,8 +83,27 @@ marginal work rather than duplicated work.
 Recorded in the spec as the resolved `FR-004`, with the supporting evidence in
 Assumptions and a follow-up for the shared layer in Dependencies.
 
+**Iteration 3 — scope amended during planning**:
+
+Planning research compared the spec against the 45 components in the customer-facing
+implementation and found four capabilities uncovered. Two of them, calls to action and
+conversation starters, were confirmed in scope and added: FR-049 through FR-052, four
+acceptance scenarios on story 5, two entities, three edge cases, and supporting
+assumptions. Story 5 was retitled from "Choose from offered replies" to "Act on what
+the conversation offers", since it no longer covers replies alone.
+
+The new requirements are numbered after FR-048 rather than beside the other offerings.
+The surrounding numbers were already referenced from `plan.md`, `data-model.md`, and
+`contracts/public-api.md`, so renumbering would have silently invalidated those
+references. A pointer in the offerings subsection makes them discoverable in place.
+
+Re-validated after the amendment: all items still pass. The two remaining gaps, product
+browsing beyond a carousel and order message presentation, are recorded rather than
+specified, which is what FR-048 requires and does not affect this checklist.
+
 ## Notes
 
-- All checklist items pass. The spec is ready for `/speckit-plan`.
-- `/speckit-clarify` is optional here; the one decision it would have surfaced is
-  already resolved above.
+- All checklist items pass.
+- `/speckit-clarify` was not needed; the one decision it would have surfaced was
+  resolved in iteration 2, and the scope gap in iteration 3 was resolved with the user
+  during planning.
