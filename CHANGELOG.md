@@ -1,0 +1,1 @@
+# @weni/platform-webchat-components

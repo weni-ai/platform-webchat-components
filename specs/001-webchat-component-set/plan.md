@@ -159,7 +159,7 @@ src/
 
 .storybook/                   # catalogue and usage documentation
 PARITY.md                     # webchat-react parity tracking
-CHANGELOG.md                  # required per release by Principle VI
+.changeset/                   # unreleased notes; CHANGELOG.md is generated on version
 ```
 
 Tests are colocated with the unit under test, for example
@@ -212,7 +212,7 @@ wired up, specified in
 [contracts/service-requirements.md](./contracts/service-requirements.md).
 
 1. **Bootstrap** — `package.json`, Vite library mode, Vitest, ESLint, Storybook with
-   documentation pages, `PARITY.md`, `CHANGELOG.md`, the owned model in `src/types/`,
+   documentation pages, `PARITY.md`, Changesets, the owned model in `src/types/`,
    the Unnnic token layer, and CI.
 2. **US1, thread and messages** (P1) — the model, every message kind, both
    presentations, indicators, scroll anchoring, sanitised text.

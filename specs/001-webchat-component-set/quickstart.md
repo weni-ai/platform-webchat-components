@@ -8,7 +8,7 @@ success criteria in the spec, so a reviewer can check them off rather than guess
 
 ## Prerequisites
 
-- Node 22.12.0 or newer, matching `agent-builder-webapp`. Verified present locally.
+- Node 26 or newer.
 - npm 10.9 or newer.
 - Access to the public npm registry. No `.npmrc` or private registry is involved.
 
@@ -32,6 +32,7 @@ Peer dependencies are installed as dev dependencies for local work:
 | `npm run typecheck` | `vue-tsc --noEmit` in strict mode |
 | `npm run lint` | ESLint with `@weni/eslint-config` and Prettier |
 | `npm run build` | Vite library build plus generated declarations |
+| `npm run changeset` | Queue an unreleased note; `CHANGELOG.md` is written on version |
 
 CI must run lint, typecheck, test, and build, per the constitution's quality gates.
 

@@ -147,8 +147,9 @@ MUST NOT be deep-imported by consumers. The package follows semantic versioning.
 Props, emits, slot names, slot scope payloads, and composable return shapes are part
 of the contract. Additive changes ship as MINOR. Renaming or removing any of them,
 or changing a default that alters rendered output, is a MAJOR change and MUST ship
-with a `CHANGELOG.md` entry that states the migration. Every release MUST have a
-`CHANGELOG.md` entry and a git tag.
+with a Changeset that states the migration. Unreleased work is recorded in
+`.changeset/`, not as a hand-edited Unreleased section. Every release MUST consume
+those changesets, write the matching `CHANGELOG.md` entry, and be git-tagged.
 
 Rationale: two applications with independent release cadences depend on this package.
 An unannounced contract change is a production break in a product owned by another
@@ -186,9 +187,8 @@ in Principle III is the kind of guarantee that silently regresses without a test
 
 The stack is Vue 3 with the Composition API and `<script setup>`, TypeScript in
 strict mode, Vite in library mode for builds, `vue-tsc` for type generation, and
-Vitest with `@vue/test-utils` for tests. Node MUST be 22.12 or newer, matching
-`agent-builder-webapp`. Linting uses `@weni/eslint-config` with Prettier; styling
-uses scoped SCSS.
+Vitest with `@vue/test-utils` for tests. Node MUST be 26 or newer. Linting uses
+`@weni/eslint-config` with Prettier; styling uses scoped SCSS.
 
 `vue`, `@weni/unnnic-system`, and `@weni/webchat-service` MUST be declared as peer
 dependencies and MUST NOT be bundled into the published output. The `vue` peer range
@@ -236,6 +236,6 @@ Reviewers MUST reject any plan or implementation that puts domain logic in this
 repository instead of `@weni/webchat-service`, passes a service instance into a
 component, introduces module-level mutable state or a fixed storage key, forks a
 component per consumer, hardcodes colours, spacing, or user-facing copy, or changes a
-public contract without a version bump and changelog entry.
+public contract without a version bump and a Changeset.
 
 **Version**: 1.0.0 | **Ratified**: 2026-09-09 | **Last Amended**: 2026-09-09

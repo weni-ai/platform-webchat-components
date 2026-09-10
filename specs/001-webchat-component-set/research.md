@@ -34,7 +34,9 @@ integrate it on day one.
 **Decision**: Vite in library mode with `vue-tsc` for declarations, Vitest with
 `@vue/test-utils` and `@vitest/coverage-istanbul`, `@weni/eslint-config` with
 Prettier, scoped SCSS through `sass`. ESM-only output plus generated `.d.ts`. Node
-pinned to `>=22.12.0` via `engines`.
+pinned to `>=26.0.0` via `engines`. The floor started at 22.12 to match
+`agent-builder-webapp` and was later raised to 26. Release notes are queued as
+Changesets; `CHANGELOG.md` is generated on version.
 
 **Rationale**: The constitution already fixes most of this. The one open choice was
 the coverage provider, and istanbul was chosen over v8 because both consumers already

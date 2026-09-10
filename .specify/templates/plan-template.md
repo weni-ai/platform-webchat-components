@@ -54,7 +54,7 @@ Confirm each gate below, or record a justified violation in Complexity Tracking.
 - [ ] **V. Unnnic only**: colours, spacing, radii, typography, and icons come from
       Unnnic tokens and components; no hardcoded values.
 - [ ] **VI. Versioned contract**: public API changes are additive, or a MAJOR bump
-      plus `CHANGELOG.md` migration note is planned.
+      plus a Changeset that states the migration is planned.
 - [ ] **VII. Parity tracked**: any capability gap versus `webchat-react` is recorded.
 - [ ] **VIII. Tests**: component variants, slot contracts, and concurrent-instance
       behaviour are covered in the same change.

@@ -47,18 +47,20 @@ Component code in `src/components/<Name>/<Name>.vue`, tests in
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-**Purpose**: Turn an empty repository into one that builds, tests, lints, and publishes
+**Purpose**: Turn an empty repository into one that builds, tests, lints, and publishes.
+Phases 1 and 2 ship as `1.0.0` with no Changeset, no `CHANGELOG.md` entry, no
+`package.json` bump, and no constitution bump.
 
-- [ ] T001 Create `package.json` with name `@weni/platform-webchat-components`, ESM `exports` map for `.`, `./composables`, and `./style.css`, peers `vue@^3.4.8`, `@weni/unnnic-system@>=3.30.0 <4`, `@weni/webchat-service@^1.10.3`, runtime deps `marked` and `dompurify`, and `engines.node >=22.12.0`
-- [ ] T002 Configure Vite library mode in `vite.config.ts` with all three peers externalised and ESM output only
-- [ ] T003 [P] Configure strict TypeScript in `tsconfig.json` and declaration emit via `vue-tsc` in the build script
-- [ ] T004 [P] Configure ESLint with `@weni/eslint-config` and Prettier in `eslint.config.js`
-- [ ] T005 [P] Configure Vitest with `@vue/test-utils`, `jsdom`, and `@vitest/coverage-istanbul` in `vitest.config.ts`
-- [ ] T006 [P] Add `vitest-axe` and register its matchers in `vitest.setup.ts`
-- [ ] T007 Configure Storybook with the Vite builder and `@storybook/addon-a11y` in `.storybook/main.ts`, loading Unnnic styles in `.storybook/preview.ts`
-- [ ] T008 [P] Create `CHANGELOG.md` seeded with the unreleased section required by Principle VI
-- [ ] T009 [P] Create `PARITY.md` classifying all 45 `webchat-react` components as in scope, widget shell, conversation starters, or generic primitive, per research D10
-- [ ] T010 Add CI workflow running lint, typecheck, test, and build in `.github/workflows/ci.yml`
+- [X] T001 Create `package.json` with name `@weni/platform-webchat-components`, ESM `exports` map for `.`, `./composables`, and `./style.css`, peers `vue@^3.4.8`, `@weni/unnnic-system@>=3.30.0 <4`, `@weni/webchat-service@^1.10.3`, runtime deps `marked` and `dompurify`, and `engines.node >=26.0.0`
+- [X] T002 Configure Vite library mode in `vite.config.ts` with all three peers externalised and ESM output only
+- [X] T003 [P] Configure strict TypeScript in `tsconfig.json` and declaration emit via `vue-tsc` in the build script
+- [X] T004 [P] Configure ESLint with `@weni/eslint-config` and Prettier in `eslint.config.js`
+- [X] T005 [P] Configure Vitest with `@vue/test-utils`, `jsdom`, and `@vitest/coverage-istanbul` in `vitest.config.ts`
+- [X] T006 [P] Add `vitest-axe` and register its matchers in `vitest.setup.ts`
+- [X] T007 Configure Storybook with the Vite builder and `@storybook/addon-a11y` in `.storybook/main.ts`, loading Unnnic styles in `.storybook/preview.ts`
+- [X] T008 [P] Configure Changesets in `.changeset/` so unreleased notes are queued there and `CHANGELOG.md` is generated on version, per Principle VI
+- [X] T009 [P] Create `PARITY.md` classifying all 45 `webchat-react` components as in scope, widget shell, conversation starters, or generic primitive, per research D10
+- [X] T010 Add CI workflow running lint, typecheck, test, and build in `.github/workflows/ci.yml`
 
 **Checkpoint**: `npm run build`, `npm test`, `npm run lint`, and `npm run dev` all succeed on an empty source tree
 
@@ -66,7 +68,8 @@ Component code in `src/components/<Name>/<Name>.vue`, tests in
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-**Purpose**: The owned model, the token layer, and the boundary enforcement that every story depends on
+**Purpose**: The owned model, the token layer, and the boundary enforcement that every story depends on.
+Still `1.0.0`: no Changeset, changelog, `package.json` version, or constitution bump.
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
@@ -342,7 +345,7 @@ Component code in `src/components/<Name>/<Name>.vue`, tests in
 - [ ] T139 Verify the built package externalises all three peers and ships no copy of Vue, Unnnic, or the service, per the consumer smoke test in [quickstart.md](./quickstart.md)
 - [ ] T140 Update `PARITY.md` marking every in-scope capability as delivered, satisfying SC-011
 - [ ] T141 Write the integration guide in `README.md` covering installation, the two entry points, and a first-screen example, supporting SC-005
-- [ ] T142 Write the `0.1.0` entry in `CHANGELOG.md` and tag the release, per Principle VI
+- [ ] T142 Tag `1.0.0` for the Phase 1–2 baseline. Do not add a Changeset, `CHANGELOG.md` entry, `package.json` bump, or constitution bump for that tag
 - [ ] T143 Run the full [quickstart.md](./quickstart.md) validation and record the result for each success criterion
 
 ---
@@ -423,4 +426,6 @@ pole and the only one that cannot be shortened from inside this repository.
 - An extraction task is not done until all four adaptations listed at the top hold.
 - Tests are required in the same change as the component, per Principle VIII.
 - Commit per task or per logical group, using Conventional Commits with a scope.
+- User-facing and public-contract changes include a Changeset in the same change,
+  starting after `1.0.0` (Phases 1 and 2).
 - Stop at any checkpoint to validate a story independently.

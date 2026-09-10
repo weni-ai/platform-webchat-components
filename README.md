@@ -47,6 +47,8 @@ contributing. The non-negotiables in short:
 
 ## Development
 
+Requires Node 26 or newer.
+
 This repository uses [Spec Kit](https://github.com/github/spec-kit) for
 spec-driven development. Workflow:
 
@@ -57,3 +59,9 @@ spec-driven development. Workflow:
 | Build the technical plan | `/speckit-plan` |
 | Generate tasks | `/speckit-tasks` |
 | Implement | `/speckit-implement` |
+
+Releases use [Changesets](https://github.com/changesets/changesets) after
+`1.0.0`. Phases 1 and 2 stay on `1.0.0` with no Changeset and no changelog.
+From then on, add a changeset with `npm run changeset` for any user-facing or
+public-contract change. `CHANGELOG.md` is generated when a later release
+consumes that queue.
