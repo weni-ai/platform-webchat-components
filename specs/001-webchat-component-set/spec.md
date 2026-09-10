@@ -12,7 +12,7 @@
 
 ## Overview
 
-Weni's CX Platform has two products that need to present a webchat conversation:
+VTEX's CX Platform has two products that need to present a webchat conversation:
 Agent Builder, where a builder tests an agent and compares two agent versions side
 by side, and Live Desk, where a human attendant is assisted by a Copilot while
 serving a customer. Today each product builds this presentation itself, which means
@@ -25,7 +25,7 @@ a customer's own website would need is not.
 
 ## Glossary
 
-- **Consuming product**: an internal Weni CX Platform application that assembles
+- **Consuming product**: an internal VTEX CX Platform application that assembles
   these blocks into a screen. Currently Agent Builder and Live Desk.
 - **Conversation**: one ordered exchange of messages tied to a single connection.
 - **Conversation surface**: one visible conversation on screen. A screen may show
@@ -47,7 +47,17 @@ action, per-message actions, product presentation, the cart, and spoken mode.
 **Out of scope**: the widget shell a customer's own site needs, which the CX Platform
 supplies itself. This means the launcher, the widget frame and its header, the
 attribution footer, the session-in-use notice, and theme provision. Conversation
-starters are also excluded, because neither consuming product needs them.
+starters are also excluded, because neither consuming product needs them. Presenting
+connection state is also excluded; the consuming product owns it.
+
+## Clarifications
+
+### Session 2026-09-10
+
+- Q: Which URL schemes may the block set treat as activatable? → A: Only `http` and `https`; any other scheme is not rendered as activatable and reports nothing
+- Q: Who presents connection state (connecting, disconnected, reconnecting)? → A: The consuming product; the block set presents none of it
+- Q: Should a failed outbound message offer a resend? → A: No. Follow the customer-facing implementation, which presents failure as a non-interactive indicator only
+- Q: Who groups consecutive messages from the same sender? → A: The thread, from a flat list; the data contract stays normalised and carries no grouping
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -418,8 +428,8 @@ displayed as it changes, and that the exit intent is reported from any phase.
 - What happens when the same message identity is supplied twice?
 - What happens when the reading direction, font size, or available width differs
   substantially from the reference designs?
-- What happens when a call to action has no destination, or a destination that cannot
-  be reached?
+- What happens when a call to action has no destination, a destination that cannot be
+  reached, or a destination whose scheme is not permitted?
 - What happens when text formatting arrives containing markup that would execute if
   rendered as-is?
 - What happens when a product set holds far more products than fit, given that no cap
@@ -466,19 +476,27 @@ displayed as it changes, and that the exit intent is reported from any phase.
 **Conversation presentation**
 
 - **FR-009**: The thread MUST present messages in chronological order and MUST make
-  sender direction visually unambiguous.
+  sender direction visually unambiguous. It MUST receive a flat, chronological list
+  and group consecutive messages from the same sender itself, so that no consuming
+  product implements grouping. Grouping MUST NOT appear in the data contract. The
+  thread MUST NOT insert date separators.
 - **FR-010**: The thread MUST present text, image, video, audio, document, location,
   and placed-order messages, and MUST keep any message whose form it does not
   recognise accounted for rather than dropping it.
 - **FR-011**: Message text MUST render supplied formatting, including emphasis, lists,
   and links, and MUST neutralise any markup capable of executing before display.
+  Every URL the block set turns into something activatable, whether it arrives in
+  message text, a call to action, a document, or a product, MUST use the `http` or
+  `https` scheme. A URL using any other scheme MUST NOT be rendered as activatable and
+  MUST report nothing when the surrounding element is interacted with.
 - **FR-012**: A message MUST be presentable either as a bubble aligned by sender or as
   an assistant block with an icon and heading above a bordered content panel, chosen by
   the consuming product without changing the message data.
 - **FR-013**: The thread MUST present text that arrives progressively without
   reordering or remounting the message as content grows.
 - **FR-014**: The thread MUST distinguish pending, delivered, read, and failed delivery
-  for outbound messages.
+  for outbound messages. These indicators MUST NOT be interactive: a failed message
+  reports nothing and offers no resend, matching the customer-facing implementation.
 - **FR-015**: The thread MUST present activity indicators for the other side
   composing and for the other side working on a reply, and these MUST be distinct.
 - **FR-016**: The thread MUST advance to a newly arrived message when the reader is
@@ -696,8 +714,9 @@ displayed as it changes, and that the exit intent is reported from any phase.
   provided here or recorded as a known gap, with none unrecorded.
 - **SC-012**: The product set is used unchanged both inside a message and standalone,
   proving the reuse that FR-041 requires.
-- **SC-013**: Message text containing markup capable of executing renders as inert
-  content, verified by a test for each formatting form supported.
+- **SC-013**: Content capable of executing renders as inert, verified by a test for
+  each formatting form supported and for each URL-bearing element given a URL whose
+  scheme is neither `http` nor `https`.
 
 ## Assumptions
 
@@ -743,6 +762,13 @@ displayed as it changes, and that the exit intent is reported from any phase.
 - Blocks with no approved design of their own follow the customer-facing
   implementation's behaviour, and where Live Desk has already built the block, that
   existing implementation is the reference for both behaviour and construction.
+- No block presents connection state. There is no precedent to follow: no approved
+  design shows a connecting, disconnected, or reconnecting state, and the
+  customer-facing implementation uses its connection status only to gate behaviour,
+  never to render anything. The consuming product already has what it needs, reading
+  the connection from the adaptation layer and passing the composer its unavailable
+  state. Inventing a presentation here would be guessing at a design nobody has drawn,
+  and placement genuinely differs between a side-by-side comparison and a single panel.
 - Each consuming product owns its own translations and supplies all wording, because
   each already maintains its own translation catalogue and pipeline.
 - Live Desk shows one conversation at a time and switches it as the attendant changes

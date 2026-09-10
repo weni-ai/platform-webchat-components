@@ -91,11 +91,11 @@ Component code in `src/components/<Name>/<Name>.vue`, tests in
 
 ### Tests for User Story 1
 
-- [ ] T019 [P] [US1] Test message ordering, sender distinction, and duplicate-`id` deduplication in `src/components/PwcThread/__tests__/PwcThread.spec.ts`
-- [ ] T020 [P] [US1] Test that formatted text renders and that markup capable of executing is neutralised, one case per supported form, in `src/internal/__tests__/renderMessageText.spec.ts`
+- [ ] T019 [P] [US1] Test message ordering, sender distinction, duplicate-`id` deduplication, grouping of consecutive same-sender messages, and the absence of date separators in `src/components/PwcThread/__tests__/PwcThread.spec.ts`
+- [ ] T020 [P] [US1] Test that content capable of executing renders inert: formatted text with executing markup neutralised in `src/internal/__tests__/renderMessageText.spec.ts`, and a URL whose scheme is neither `http` nor `https` rejected as non-activatable in `src/internal/__tests__/isActivatableUrl.spec.ts`
 - [ ] T021 [P] [US1] Test every message kind including `unsupported` and empty content in `src/components/PwcMessage/__tests__/PwcMessage.kinds.spec.ts`
 - [ ] T022 [P] [US1] Test both presentations render the same message data differently in `src/components/PwcMessage/__tests__/PwcMessage.presentation.spec.ts`
-- [ ] T023 [P] [US1] Test pending, delivered, read, and failed delivery states in `src/components/PwcMessage/__tests__/PwcMessage.delivery.spec.ts`
+- [ ] T023 [P] [US1] Test pending, delivered, read, and failed delivery states, and that none of the indicators is interactive, in `src/components/PwcMessage/__tests__/PwcMessage.delivery.spec.ts`
 - [ ] T024 [P] [US1] Test that streaming text grows without remounting the message, asserting instance identity is preserved, in `src/components/PwcMessage/__tests__/PwcMessage.streaming.spec.ts`
 - [ ] T025 [P] [US1] Test auto-advance within threshold, no movement when scrolled back, wheel-up leaving the bottom immediately, and reading-position preservation on history prepend in `src/internal/__tests__/useThreadScroll.spec.ts`
 - [ ] T026 [P] [US1] Test composing and working indicators are distinct and mutually exclusive in `src/components/PwcThread/__tests__/PwcThread.indicators.spec.ts`
@@ -104,7 +104,7 @@ Component code in `src/components/<Name>/<Name>.vue`, tests in
 
 ### Implementation for User Story 1
 
-- [ ] T029 [P] [US1] Implement sanitised formatted-text rendering with `marked` and `dompurify` in `src/internal/renderMessageText.ts`
+- [ ] T029 [P] [US1] Implement sanitised formatted-text rendering with `marked` and `dompurify` in `src/internal/renderMessageText.ts`, and the shared scheme guard permitting only `http` and `https` in `src/internal/isActivatableUrl.ts`, used by every URL-bearing element per FR-011
 - [ ] T030 [P] [US1] Extract the audio message presentation from `«copilot»/assistant/media/AudioMessage.vue` into `src/components/PwcMessage/parts/MessageAudio.vue`
 - [ ] T031 [P] [US1] Extract the image message presentation from `«copilot»/assistant/media/ImageMessage.vue` into `src/components/PwcMessage/parts/MessageImage.vue`, adding the load-failure state
 - [ ] T032 [P] [US1] Extract the document message presentation from `«copilot»/assistant/media/FileMessage.vue` into `src/components/PwcMessage/parts/MessageDocument.vue`
@@ -218,7 +218,7 @@ Component code in `src/components/<Name>/<Name>.vue`, tests in
 - [ ] T079 [P] [US5] Test preset reply selection reports the chosen reply once in `src/components/PwcMessage/__tests__/PwcMessage.presetReplies.spec.ts`
 - [ ] T080 [P] [US5] Test option list selection reports the option and closes the list in `src/components/PwcMessage/__tests__/PwcMessage.options.spec.ts`
 - [ ] T081 [P] [US5] Test suggestions distinguish send-immediately from edit-first and that long wording wraps rather than clipping in `src/components/PwcSuggestions/__tests__/PwcSuggestions.spec.ts`
-- [ ] T082 [P] [US5] Test the call to action renders as a real link opening in a new context, also emits activation, and does neither while disabled or without a destination, in `src/components/PwcMessage/__tests__/PwcMessage.callToAction.spec.ts`
+- [ ] T082 [P] [US5] Test the call to action renders as a real link opening in a new context, also emits activation, and does neither while disabled, without a destination, or with a scheme other than `http` or `https`, in `src/components/PwcMessage/__tests__/PwcMessage.callToAction.spec.ts`
 - [ ] T083 [P] [US5] Test each message action renders only when its flag is set, that the row collapses otherwise, that copy carries the text, and that a supplied rating shows as chosen, in `src/components/PwcMessageActions/__tests__/PwcMessageActions.spec.ts`
 - [ ] T084 [P] [US5] Axe assertions for suggestions and message actions in `src/components/PwcSuggestions/__tests__/PwcSuggestions.a11y.spec.ts`
 

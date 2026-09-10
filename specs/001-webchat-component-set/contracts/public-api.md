@@ -88,7 +88,6 @@ interface ThreadLabels {
   deliveryDelivered: string;
   deliveryRead: string;
   deliveryFailed: string;
-  retry: string;
   openDocument: string;
   unsupportedMessage: string;
   mediaLoadFailed: string;
@@ -106,7 +105,6 @@ interface ThreadLabels {
 | `select-product` | `{ messageId, productId }` | FR-040 |
 | `add-product-to-cart` | `{ messageId, productId }` | FR-045 |
 | `remove-product` | `{ messageId, productId }` | FR-045 |
-| `retry-message` | `{ messageId }` | Failed outbound message, FR-014 |
 | `open-document` | `{ messageId, url }` | FR-010 |
 | `activate-call-to-action` | `{ messageId, url }` | Reported in addition to navigating, FR-036 |
 | `message-action` | `{ messageId, action: 'copy' \| 'send' \| 'rate', rating?: MessageRating }` | FR-038 |
@@ -128,6 +126,8 @@ a real case appears that variants and the two injection slots cannot serve.
 **Behaviour that is part of the contract**
 
 - Messages render in the order supplied; the component does not sort. FR-009
+- Consecutive messages from the same sender are grouped by the component itself, from
+  the flat list; `Thread` carries no grouping. No date separators are inserted. FR-009
 - A message keyed by `id` is never remounted as `streaming` content grows. FR-013
 - A new message advances the view only while the reader is within
   `autoAdvanceThresholdPx` of the newest message. FR-016

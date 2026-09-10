@@ -127,6 +127,18 @@ design confirmation in the plan's Open items rather than guessed at, which is wh
 do not appear here as `[NEEDS CLARIFICATION]`: neither blocks planning, and both are
 questions for a designer rather than decisions for the spec.
 
+**Iteration 5 — clarification session**:
+
+Four clarifications recorded under `## Clarifications`, resolving gaps a taxonomy scan
+found: URL scheme safety, ownership of connection-state presentation, whether a failed
+message offers a resend, and who groups consecutive messages. Three were answered by
+reading the customer-facing implementation rather than by preference, which is why the
+resend question ended by **removing** contract surface instead of adding a requirement.
+
+Re-validated after each integration: 16/16 items still pass, with no state changes.
+The session tightened existing requirements rather than adding new subject matter, so
+no acceptance scenario or success criterion was left without coverage.
+
 ## Notes
 
 - All checklist items pass.
