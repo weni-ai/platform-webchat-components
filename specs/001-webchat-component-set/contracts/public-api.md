@@ -76,7 +76,25 @@ Renders a conversation. Owns scroll behaviour and nothing else.
 | `locale` | `string` | yes | Timestamp formatting, FR-018 |
 | `presentation` | `MessagePresentation` | no, default `'bubble'` | FR-012 |
 | `labels` | `ThreadLabels` | yes | FR-003 |
-| `autoAdvanceThresholdPx` | `number` | no, default `64` | Distance from newest message within which new arrivals advance the view, FR-016 |
+| `autoAdvanceThresholdPx` | `number` | no, default `100` | Distance from newest message within which new arrivals advance the view, FR-016. The default matches the value `chats-webapp` already tuned in production |
+
+```ts
+interface ThreadLabels {
+  empty: string;
+  loadingEarlier: string;
+  peerComposing: string;
+  peerWorking: string;
+  deliveryPending: string;
+  deliveryDelivered: string;
+  deliveryRead: string;
+  deliveryFailed: string;
+  retry: string;
+  openDocument: string;
+  unsupportedMessage: string;
+  mediaLoadFailed: string;
+  goToNewest: string;
+}
+```
 
 **Emits**
 
@@ -113,6 +131,10 @@ a real case appears that variants and the two injection slots cannot serve.
 - A message keyed by `id` is never remounted as `streaming` content grows. FR-013
 - A new message advances the view only while the reader is within
   `autoAdvanceThresholdPx` of the newest message. FR-016
+- A control to return to the newest message appears while the reader is away from it,
+  using `labels.goToNewest`. FR-016
+- An upward wheel gesture stops auto-advance immediately, without waiting for the
+  scroll position to confirm it, so the thread never fights a reader mid-gesture.
 - Prepending earlier history preserves the reader's viewport position. FR-016
 - A duplicate `id` renders once. Edge case in the spec.
 - `kind: 'unsupported'` occupies a position using `labels.unsupportedMessage`. FR-010

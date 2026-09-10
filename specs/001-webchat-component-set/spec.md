@@ -482,8 +482,9 @@ displayed as it changes, and that the exit intent is reported from any phase.
 - **FR-015**: The thread MUST present activity indicators for the other side
   composing and for the other side working on a reply, and these MUST be distinct.
 - **FR-016**: The thread MUST advance to a newly arrived message when the reader is
-  already at the latest message, and MUST NOT move the reader when they have scrolled
-  back to read history.
+  already at the latest message, MUST NOT move the reader when they have scrolled
+  back to read history, and MUST offer a way to return to the newest message while
+  the reader is away from it.
 - **FR-017**: The thread MUST report when the reader has reached the start of loaded
   history so more can be requested, and MUST be able to present that loading is in
   progress.

@@ -199,12 +199,17 @@ Builder variants get added. A task that extracts a component is not done until t
 four are true of it.
 
 Three components need more than that, and reading them changed the effort estimate.
-The thread owns **no scroll behaviour at all** today, so FR-016 and FR-017 are new
-work rather than extraction. The composer holds its own draft, validates files itself,
-and raises a global alert, all of which have to come apart before FR-030 and FR-001
-hold. And the cart **computes its line totals locally**, which Principle I forbids
-here, so that arithmetic moves to `@weni/webchat-service` instead of coming across.
+The composer holds its own draft, validates files itself, and raises a global alert,
+all of which have to come apart before FR-030 and FR-001 hold. The cart **computes its
+line totals locally**, which Principle I forbids here, so that arithmetic moves to
+`@weni/webchat-service` instead of coming across. And the thread's scroll behaviour is
+half present: `useAutoScroll.ts` handles auto-advance and a return-to-newest control,
+but nothing anywhere preserves the reading position when earlier history is prepended.
 Research D13 tabulates this per component.
+
+`@weni/webchat-service` itself needs two additions before stories 7 and 8 can be
+wired up, specified in
+[contracts/service-requirements.md](./contracts/service-requirements.md).
 
 1. **Bootstrap** — `package.json`, Vite library mode, Vitest, ESLint, Storybook with
    documentation pages, `PARITY.md`, `CHANGELOG.md`, the owned model in `src/types/`,

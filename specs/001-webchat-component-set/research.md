@@ -162,7 +162,23 @@ them. Distance from the bottom is that signal.
 **Alternatives considered**: CSS `overflow-anchor` handles some prepend cases natively
 but gives no control over when to advance and behaves inconsistently across engines
 for programmatic insertion. Scrolling every new message into view was rejected because
-it actively fights a reader who is reading history, which is the failure FR-013 names.
+it actively fights a reader who is reading history, which is the failure FR-016 names.
+
+**Half of this already exists.** `chats-webapp`'s `useAutoScroll.ts` implements the
+auto-advance half, with a 100px threshold rather than the 64px assumed here, so the
+default moves to 100px to match behaviour a real product has already tuned. It carries
+two details worth keeping. It tracks programmatic scrolls with a flag so its own
+`scrollTop` write does not read back as the reader scrolling away. And it treats an
+upward wheel gesture as leaving the bottom immediately, rather than waiting for the
+scroll position to prove it, so auto-advance does not fight a reader mid-gesture.
+
+It also exposes a `showGoToBottom` flag and a `scrollToBottom` action, which is a
+capability the spec had missed: a way back to the newest message while reading
+history. FR-016 now includes it.
+
+**What it does not do** is preserve the reading position when earlier history is
+prepended. Nothing in either implementation does, so that half of FR-016 and the
+history request in FR-017 remain new work.
 
 ## D7: Long conversation rendering
 
@@ -412,7 +428,7 @@ Beyond that, per component:
 
 | Component | What is missing or must change |
 |-----------|-------------------------------|
-| `AssistantMessageList` | Owns **no scroll behaviour at all**: no auto-advance, no reading-position preservation, no request for earlier history. FR-016 and FR-017 are new work, not extraction. It also has no delivery states, no timestamps, and no per-message slots. |
+| `AssistantMessageList` | Owns no scroll behaviour itself, but `useAutoScroll.ts` does, so auto-advance is extraction after all. What is genuinely missing is preserving the reading position when earlier history is prepended, which nothing implements, plus delivery states, timestamps, and per-message slots. |
 | `AssistantInput` | Holds its draft internally, so FR-030's controlled text is a change, not a config. It validates file size and type itself and raises `UnnnicCallAlert`, which is both a side effect and hardcoded wording; both become emitted intents. Its attachment control is a popover menu rather than the separate mic and attach buttons the Agent Builder design shows, so the two arrangements have to reconcile as variants. |
 | `AiMessage` | Holds the thumbs rating in local state and writes to the clipboard itself. Both move out: FR-039 supplies the rating as data and FR-001 makes copying an emitted intent. |
 | `Cart` | **Computes line totals locally.** Principle I forbids that here, so the arithmetic moves to `@weni/webchat-service` rather than coming across. This is the clearest evidence yet for the cart dependency the spec already records. |
